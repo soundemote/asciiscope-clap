@@ -389,6 +389,19 @@ template <bool multiOut> struct SideQuest : public plugHelper_t, sst::clap_juce_
         return true;
     }
 
+    bool registerOrUnregisterPosixFd(int fd, clap_posix_fd_flags_t flags, bool reg) override
+    {
+        if (!_host.canUsePosixFdSupport())
+            return false;
+
+        if (reg)
+        {
+            return _host.posixFdSupportRegister(fd, flags);
+        }
+
+        return _host.posixFdSupportUnregister(fd);
+    }
+
     static uint32_t vst3_getNumMIDIChannels(const clap_plugin *plugin, uint32_t note_port)
     {
         return 16;
