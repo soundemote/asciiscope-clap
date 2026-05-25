@@ -95,6 +95,25 @@ float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize
                        AsciiscopeVisualComponent::historySize;
     return history[index];
 }
+
+void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level,
+               juce::Colour colour, const char *label)
+{
+    const auto value = std::clamp(level, 0.0f, 1.0f);
+    g.setColour(juce::Colour(0xff07101c).withAlpha(0.82f));
+    g.fillRect(bounds);
+    g.setColour(juce::Colour(0xff18304d).withAlpha(0.78f));
+    g.drawRect(bounds, 1.0f);
+
+    auto fill = bounds.reduced(1.0f);
+    fill.setWidth(fill.getWidth() * value);
+    g.setColour(colour.withAlpha(0.82f));
+    g.fillRect(fill);
+
+    g.setColour(juce::Colour(0xffd7faff).withAlpha(0.74f));
+    g.setFont(juce::FontOptions(9.0f, juce::Font::plain));
+    g.drawText(label, bounds.reduced(4.0f, 0.0f), juce::Justification::centredLeft, false);
+}
 } // namespace
 
 AsciiscopeVisualComponent::AsciiscopeVisualComponent()
@@ -249,6 +268,11 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
                          " // L " + juce::String(leftLevel, 2) + " R " + juce::String(rightLevel, 2);
     g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
     g.drawText(readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
+
+    auto meterArea = scope.reduced(7.0f).withHeight(19.0f).withWidth(118.0f);
+    drawMeter(g, meterArea.removeFromTop(8.0f), leftLevel, phosphorFor(0.62f, palette), "L");
+    meterArea.removeFromTop(3.0f);
+    drawMeter(g, meterArea.removeFromTop(8.0f), rightLevel, phosphorFor(0.48f, palette), "R");
 
     if (hasSnapshot)
     {

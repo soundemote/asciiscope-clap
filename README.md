@@ -46,6 +46,7 @@ done  : width-reactive sparkle from stereo correlation
 done  : transient/crest flash from audio snapshot peaks
 done  : smoothed visual metrics for steadier host readouts
 done  : live/stale snapshot feed indicator
+done  : compact L/R meters inside the scope frame
 kept  : existing engine/editor/classes/namespace shape
 next  : richer snapshot-fed modes
 later : Asciiscope scene/render adapter
