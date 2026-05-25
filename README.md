@@ -43,6 +43,7 @@ done  : stereo snapshot history for width-reactive visual motion
 done  : snapshot block/frame/age readouts for host testing
 done  : stereo correlation in the audio snapshot readout
 done  : width-reactive sparkle from stereo correlation
+done  : transient/crest flash from audio snapshot peaks
 kept  : existing engine/editor/classes/namespace shape
 next  : richer snapshot-fed modes
 later : Asciiscope scene/render adapter

@@ -167,6 +167,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
     const auto energy = std::clamp(0.18f + leftLevel * 0.62f + rightLevel * 0.42f, 0.0f, 1.0f);
     const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(snapshot.stereoCorrelation), 0.0f, 1.0f) : 0.0f;
+    const auto transient = hasSnapshot ? snapshot.transientAmount : 0.0f;
     const auto rows = std::max(8, static_cast<int>(scope.getHeight() / 11.0f));
     const auto cols = std::max(24, static_cast<int>(scope.getWidth() / 8.0f));
     const auto cellW = scope.getWidth() / static_cast<float>(cols);
@@ -202,7 +203,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         const auto waveB = std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
                            (0.10f + rightLevel * 0.16f);
         const auto centre = 0.5f + waveA + waveB;
-        const auto glow = std::clamp(0.10f + energy * 0.55f, 0.0f, 0.75f);
+        const auto glow = std::clamp(0.10f + energy * 0.55f + transient * 0.18f, 0.0f, 0.82f);
 
         for (int y = 0; y < rows; ++y)
         {
@@ -213,7 +214,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
                                           0.5f +
                                       0.5f;
             const auto intensity = std::clamp((glow - distance) * 2.6f + pulse * 0.16f +
-                                                  widthSparkle * width * 0.18f,
+                                                  widthSparkle * width * 0.18f + pulse * transient * 0.14f,
                                               0.0f, 1.0f);
             if (intensity <= 0.05f)
                 continue;
@@ -249,7 +250,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
                           " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
                           " // age " + juce::String(age) +
                           " // rms " + juce::String((snapshot.leftRms + snapshot.rightRms) * 0.5f, 3) +
-                          " // corr " + juce::String(snapshot.stereoCorrelation, 2);
+                          " // corr " + juce::String(snapshot.stereoCorrelation, 2) +
+                          " // crest " + juce::String(snapshot.transientAmount, 2);
         g.setColour(phosphorFor(0.50f, palette).withAlpha(0.72f));
         g.drawText(feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
     }

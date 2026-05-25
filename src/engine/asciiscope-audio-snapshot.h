@@ -37,6 +37,7 @@ struct AsciiscopeAudioSnapshot
     float leftRms{0.0f};
     float rightRms{0.0f};
     float stereoCorrelation{0.0f};
+    float transientAmount{0.0f};
 };
 
 struct AsciiscopeAudioSnapshotBuffer
@@ -75,6 +76,11 @@ struct AsciiscopeAudioSnapshotBuffer
             const auto correlationDenom = std::sqrt(leftSquares * rightSquares);
             if (correlationDenom > 0.000001f)
                 latest.stereoCorrelation = std::clamp(crossSum / correlationDenom, -1.0f, 1.0f);
+
+            const auto peak = std::max(latest.leftPeak, latest.rightPeak);
+            const auto rms = (latest.leftRms + latest.rightRms) * 0.5f;
+            if (rms > 0.000001f)
+                latest.transientAmount = std::clamp((peak / rms - 1.0f) * 0.35f, 0.0f, 1.0f);
         }
     }
 
