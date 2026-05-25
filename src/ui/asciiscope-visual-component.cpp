@@ -24,6 +24,32 @@ namespace
 {
 constexpr auto glyphRamp = " .:-=+*#%@";
 
+const char *modeName(int mode)
+{
+    switch (mode)
+    {
+    case 1:
+        return "mirror";
+    case 2:
+        return "spectral";
+    default:
+        return "wave";
+    }
+}
+
+const char *paletteName(int palette)
+{
+    switch (palette)
+    {
+    case 1:
+        return "ember";
+    case 2:
+        return "ice";
+    default:
+        return "neon";
+    }
+}
+
 juce::Colour phosphorFor(float energy, int palette)
 {
     const auto e = std::clamp(energy, 0.0f, 1.0f);
@@ -186,9 +212,14 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
     g.setColour(juce::Colour(0xff5efcff).withAlpha(0.85f));
     g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
-    const char *modeName = scopeMode == 0 ? "wave" : (scopeMode == 1 ? "mirror" : "spectral");
-    g.drawText(juce::String("ASCIISCOPE CLAP // ") + modeName +
+    g.drawText(juce::String("ASCIISCOPE CLAP // ") + modeName(scopeMode) +
                    (hasSnapshot ? " snapshot feed" : " demo feed"),
                scope.reduced(7.0f), juce::Justification::topLeft, false);
+
+    const auto readout = juce::String("mode ") + juce::String(scopeMode) + " " + modeName(scopeMode) +
+                         " // palette " + juce::String(palette) + " " + paletteName(palette) +
+                         " // L " + juce::String(leftLevel, 2) + " R " + juce::String(rightLevel, 2);
+    g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
+    g.drawText(readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
 }
 } // namespace baconpaul::sidequest_ns::ui
