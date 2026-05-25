@@ -1,7 +1,6 @@
 # asciiscope-clap
 
 https://mit-license.org/
-
 ```rust
 // project version 0.1.0
 // Soundemote signal visuals inside CLAP/JUCE hosts
@@ -13,6 +12,7 @@ format path     : CLAP first, VST3/AUv2 wrappers from clap-wrapper
 visual goal     : dark colorful console-style signal art
 next step       : JUCE visual component fed by demo/VU-derived data
 ```
+![example.gif](https://github.com/soundemote/asciiscope/blob/main/example.gif)
 
 ## what is this?
 
