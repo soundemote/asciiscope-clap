@@ -126,8 +126,11 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
 
     for (uint32_t i = 0; i < snapshot.sampleCount; ++i)
     {
-        monoHistory[historyWrite] = std::clamp((snapshot.left[i] + snapshot.right[i]) * 0.5f,
-                                               -1.0f, 1.0f);
+        const auto left = std::clamp(snapshot.left[i], -1.0f, 1.0f);
+        const auto right = std::clamp(snapshot.right[i], -1.0f, 1.0f);
+        leftHistory[historyWrite] = left;
+        rightHistory[historyWrite] = right;
+        monoHistory[historyWrite] = std::clamp((left + right) * 0.5f, -1.0f, 1.0f);
         historyWrite = (historyWrite + 1U) % historySize;
         historyCount = std::min(historyCount + 1U, historySize);
     }
@@ -173,12 +176,14 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         const auto phase = (static_cast<float>(x) / static_cast<float>(cols)) * juce::MathConstants<float>::twoPi;
         const auto t = static_cast<float>(frame) * 0.065f;
         auto sample = std::sin(phase * 2.0f + t) * (0.23f + leftLevel * 0.25f);
+        auto stereoSpread = std::sin(phase * 3.0f - t * 0.7f) * rightLevel * 0.12f;
         if (hasSnapshot)
         {
             const auto historyPosition = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
-            sample = std::clamp(readHistory(monoHistory, historyWrite, historyCount, historyPosition) *
-                                    0.54f * traceGain,
-                                -0.48f, 0.48f);
+            const auto left = readHistory(leftHistory, historyWrite, historyCount, historyPosition);
+            const auto right = readHistory(rightHistory, historyWrite, historyCount, historyPosition);
+            sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
+            stereoSpread = std::clamp((left - right) * 0.18f * traceGain, -0.24f, 0.24f);
         }
         else
         {
@@ -186,11 +191,12 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         }
 
         if (scopeMode == 1)
-            sample = std::abs(sample) * 0.88f - 0.22f;
+            sample = std::abs(sample + stereoSpread) * 0.88f - 0.22f;
         else if (scopeMode == 2)
-            sample = std::sin(sample * 5.0f + phase * 1.7f + t * 0.8f) * (0.18f + energy * 0.32f);
+            sample = std::sin((sample + stereoSpread) * 5.0f + phase * 1.7f + t * 0.8f) *
+                     (0.18f + energy * 0.32f);
 
-        const auto waveA = sample;
+        const auto waveA = sample + stereoSpread;
         const auto waveB = std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
                            (0.10f + rightLevel * 0.16f);
         const auto centre = 0.5f + waveA + waveB;

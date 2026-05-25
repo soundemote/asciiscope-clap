@@ -39,6 +39,7 @@ done  : audio-to-editor visual snapshot boundary
 done  : rolling UI-side waveform history for block snapshots
 done  : simple Scope Mode and Palette plugin parameters
 done  : Trace Gain parameter for pushing quiet input into visible motion
+done  : stereo snapshot history for width-reactive visual motion
 kept  : existing engine/editor/classes/namespace shape
 next  : richer snapshot-fed modes
 later : Asciiscope scene/render adapter
