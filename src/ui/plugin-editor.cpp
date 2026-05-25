@@ -43,7 +43,7 @@ PluginEditor::PluginEditor(Engine::audioToUIQueue_t &atou, Engine::mainToAudioQu
                            const clap_host_t *h)
     : jcmp::WindowPanel(true), audioToUI(atou), mainToAudio(utoa), clapHost(h)
 {
-    setTitle("Side Quest - Replace this");
+    setTitle("Asciiscope CLAP");
     setAccessible(true);
     sst::jucegui::style::StyleSheet::initializeStyleSheets([]() {});
 
@@ -92,7 +92,7 @@ PluginEditor::PluginEditor(Engine::audioToUIQueue_t &atou, Engine::mainToAudioQu
 
     // this needs a cleanup
     defaultsProvider = std::make_unique<defaultsProvder_t>(
-        presetManager->userPath, "SideQuest", defaultName,
+        presetManager->userPath, "Asciiscope CLAP", defaultName,
         [](auto e, auto b) { SQLOG("[ERROR]" << e << " " << b); });
     setSkinFromDefaults();
 
@@ -577,7 +577,7 @@ void PluginEditor::showPresetPopup()
     p.addItem("Read the Manual", false, false, []() {});
     p.addItem("Get the Source",
               []() {
-                  juce::URL("https://github.com/baconpaul/sidequest-startingpoint/")
+                  juce::URL("https://github.com/soundemote/asciiscope-clap/")
                       .launchInDefaultBrowser();
               });
     p.addItem("Acknowledgements", false, false, []() {});

@@ -1,167 +1,43 @@
-# ⋆⁺₊✧ asciiscope ✧₊⁺⋆
+# asciiscope-clap
 
 https://mit-license.org/
 
 ```rust
 // project version 0.1.0
-// Soundemote terminal-native signal visuals
-// real console output > fake mockups
+// Soundemote signal visuals inside CLAP/JUCE hosts
+// plugin window now, live synth visuals next
 
-📺 console renderer : dark terminal phosphor, colored glyph trails
-〰️ signal frames    : renderer-neutral visual input
-🌀 demo signals     : soemdsp phasors, attractors, envelopes, noise
-🌃 visual modes     : bloom, tunnel, particle field
-🎛️ future input     : synths, plugins, sandbox probes, live signal buses
-```
-
-![example.gif](https://github.com/soundemote/asciiscope/blob/main/example.gif)
-
-
-Windows Run command:
-
-```text
-cmd /k "cd /d C:\Users\argit\Desktop\asciiscope && build\Release\asciiscope.exe"
-```
-
-## live controls
-
-```markdown
-1 2 3        lock bloom / tunnel / particle mode
-0            return to automatic mode rotation
-Space        pause or resume
-+ -          speed up or slow down
-Up Down      speed up or slow down
-[ ]          reduce or increase signal density
-Left Right   reduce or increase signal density
-Mouse wheel  zoom without clearing current trails
-z Z          keyboard zoom out / in
-< >          shorter or longer trails
-c            toggle color
-r or x       clear trails
-h or ?       show control help
-q or Esc     quit
+plugin identity : Asciiscope CLAP
+foundation      : baconpaul sidequest-startingpoint
+format path     : CLAP first, VST3/AUv2 wrappers from clap-wrapper
+visual goal     : dark colorful console-style signal art
+next step       : JUCE visual component fed by demo/VU-derived data
 ```
 
 ## what is this?
 
-Asciiscope is a dark colorful console instrument for signal art.
+Asciiscope CLAP is the plugin-side path for Asciiscope.
 
-It turns DSP motion into terminal-native oscilloscope visuals: glowing ASCII
-trails, waveform tunnels, chaotic attractor blooms, particle fields, envelope
-flashes, and spectral-looking text graphics that can be recorded straight from
-Windows Terminal.
+The terminal app stays independent and terminal-first. This repo adapts the
+same signal-visual idea into a plugin editor that can eventually react to synths,
+tracks, buses, and host automation.
 
-This is the Soundemote attention layer:
-
-```markdown
-soemdsp          -> math, signal, dsp objects
+```text
 asciiscope       -> terminal-native visual instrument
-asciiscope-clap  -> future plugin window / synth input path
+asciiscope-clap  -> plugin editor / host input path
+soemdsp          -> future shared DSP and signal concepts
 ```
 
-## visual identity
+## current status
 
-```rust
-black screen
-cyan voltage
-violet decay
-white-hot transients
-blue low-energy ghosts
-monospace motion
-signal trails that feel like hardware waking up in the dark
-```
-
-The console is not a placeholder. The console is the look.
-
-## files
+This repo is still intentionally close to the startingpoint architecture.
 
 ```markdown
-### `include/asciiscope/SignalInput.hpp`
-neutral visual input boundary
-SignalFrame, SignalSource, SignalSample, SignalKind, ISignalInput
-
-### `include/asciiscope/DemoSignalInput.hpp`
-generated signal producer using soemdsp objects
-currently feeds the standalone demo
-
-### `include/asciiscope/AnimationScene.hpp`
-visual scene modes
-consumes SignalFrame data, not sandbox/runtime internals
-
-### `include/asciiscope/ConsoleRenderer.hpp`
-terminal framebuffer, glyph decay, ANSI fallback, Windows console buffer output
-
-### `src/main.cpp`
-demo loop, live controls, frame timing
-```
-
-## signal path
-
-```text
-DemoSignalInput
-    -> SignalFrame
-    -> AnimationScene
-    -> ConsoleRenderer
-    -> Windows Terminal / cmd
-```
-
-Future signal path:
-
-```text
-soemdsp-sandbox VisualizationBus
-    -> SandboxSignalInput
-    -> SignalFrame
-    -> AnimationScene
-    -> ConsoleRenderer
-```
-
-Asciiscope should stay independent. It should not become a sandbox client.
-It should become a signal-frame visual instrument that a future adapter can feed.
-
-## current modes
-
-```rust
-multi-sprott bloom
-// chaotic attractor trace, rotating slowly through terminal space
-
-phasor wave tunnel
-// circular waveform tunnel, pulse and LFO modulated
-
-pluck/noise particle field
-// envelope flashes, noise drift, orbiting signal dust
-```
-
-## soemdsp objects currently used
-
-```cpp
-soemdsp::oscillator::Phasor
-soemdsp::oscillator::MultiSprottC
-soemdsp::oscillator::Thomas
-soemdsp::utility::NoiseGenerator
-soemdsp::modulator::LinearDASR
-soemdsp::filter::LinearSmoother
-soemdsp::math
-```
-
-## dependency
-
-`soemdsp` lives at:
-
-```text
-libs/soemdsp
-```
-
-This checkout is configured for the local Soundemote source repo:
-
-```powershell
-git submodule update --init --recursive
-```
-
-If the submodule needs to be reattached:
-
-```powershell
-git submodule set-url libs/soemdsp C:/Users/argit/Desktop/soemdsp
-git submodule update --init --recursive
+done  : visible product/plugin identity rename to Asciiscope CLAP
+kept  : existing engine/editor/classes/namespace shape
+next  : tiny JUCE visual component
+later : audio-to-visual snapshot buffer
+later : Asciiscope scene/render adapter
 ```
 
 ## build
@@ -171,48 +47,51 @@ cmake -S . -B build
 cmake --build build --config Release
 ```
 
-## run
+The project currently builds CLAP, VST3, AUv2 wrapper targets, and a standalone
+target through the existing startingpoint/clap-wrapper setup.
 
-```powershell
-.\build\Release\asciiscope.exe
+## architecture notes
+
+Preserved for now:
+
+```markdown
+baconpaul::sidequest_ns namespace
+clapimpl::SideQuest<multiOut>
+ui::PluginEditor
+ui::MainPanel
+60 Hz editor IdleTimer
+existing scalar audio/UI queue
+current audio port shape
 ```
 
-Options:
+Near-term insertion point:
 
-```powershell
-.\build\Release\asciiscope.exe --no-color
-.\build\Release\asciiscope.exe --once
+```text
+Engine::process()
+    -> lightweight visual snapshot
+    -> PluginEditor::idle()
+    -> AsciiscopeVisualComponent::repaint()
+    -> AsciiscopeVisualComponent::paint(juce::Graphics&)
 ```
 
-The footer shows the current mode, speed, density, zoom, trail amount, color
-state, pause state, and last adjusted control.
+Do not make the terminal app become a plugin project. The plugin should adapt to
+Asciiscope concepts.
 
 ## future
 
 ```rust
-AudioSignalInput
-// live synth or audio interface input
+AsciiscopeVisualComponent
+// small JUCE component with the dark console look
 
-SandboxSignalInput
-// consumes future soemdsp-sandbox visualization/probe frames
+DemoVisualInput
+// non-audio first visual feed for proving editor rendering
 
-PluginRenderer
-// asciiscope-clap draws the console look inside a plugin editor
+AudioVisualSnapshot
+// lock-safe handoff from audio thread to editor thread
 
-WaveformScope
-// honest oscilloscope mode for real synth signals
+SignalFrameAdapter
+// maps plugin data toward Asciiscope SignalFrame concepts
 
-SpectralConsole
-// dark colorful pseudo-spectrum made from real audio features
-```
-
-## philosophy
-
-```markdown
-* real executable output
-* terminal visuals first
-* visible motion over architecture theater
-* dark console, bright signal
-* generated demos now, live synths next
-* keep the visual core independent
+LiveScopeMode
+// oscilloscope / spectral / particle modes driven by real synth signals
 ```

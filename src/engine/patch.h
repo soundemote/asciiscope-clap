@@ -65,7 +65,7 @@ struct Param : pats::ParamBase, sst::cpputils::active_set_overlay<Param>::partic
 struct Patch : pats::PatchBase<Patch, Param>
 {
     static constexpr uint32_t patchVersion{9};
-    static constexpr const char *id{"org.baconpaul.six-sines"};
+    static constexpr const char *id{"org.soundemote.asciiscope.clap"};
 
     static constexpr uint32_t floatFlags{CLAP_PARAM_IS_AUTOMATABLE};
     static constexpr uint32_t boolFlags{CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_STEPPED};
@@ -134,7 +134,7 @@ struct Patch : pats::PatchBase<Patch, Param>
         {
         }
 
-        std::string name() const { return "SideQuest"; }
+        std::string name() const { return "Asciiscope"; }
         uint32_t id(int f) const { return idBase + f; }
 
         Param pitch, harmlev;

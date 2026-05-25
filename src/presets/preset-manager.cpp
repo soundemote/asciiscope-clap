@@ -32,7 +32,8 @@ PresetManager::PresetManager(const clap_host_t *ch) : clapHost(ch)
     try
     {
         userPath =
-            sst::plugininfra::paths::bestDocumentsVendorFolderPathFor("BaconPaul", "SideQuest");
+            sst::plugininfra::paths::bestDocumentsVendorFolderPathFor("Soundemote",
+                                                                       "Asciiscope CLAP");
         if (clapHost)
             fs::create_directories(userPath);
         userPatchesPath = userPath / "Patches";

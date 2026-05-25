@@ -44,14 +44,14 @@ const clap_plugin_descriptor *getDescriptor()
 
     static clap_plugin_descriptor desc = {
         CLAP_VERSION,
-        "org.baconpaul.sidequest",
+        "org.soundemote.asciiscope.clap",
         PRODUCT_NAME,
-        "BaconPaul",
-        "https://baconpaul.org",
+        "Soundemote",
+        "https://github.com/soundemote/asciiscope-clap",
         "",
         "",
         sst::plugininfra::VersionInformation::project_version_and_hash,
-        "Run of the mill subtractive synth. Almost.",
+        "Dark colorful signal visuals for CLAP hosts.",
         &features[0]};
     return &desc;
 }
@@ -91,7 +91,7 @@ static bool clap_get_auv2_info(const clap_plugin_factory_as_auv2 *factory, uint3
     if (index == 0)
     {
         strncpy(info->au_type, "aumu", 5); // use the features to determine the type
-        strncpy(info->au_subt, "sqTP", 5);
+        strncpy(info->au_subt, "aScp", 5);
     }
 
     return true;
@@ -120,15 +120,16 @@ const void *get_factory(const char *factory_id)
     if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_INFO_AUV2) == 0)
     {
         static const struct clap_plugin_factory_as_auv2 sidequest_auv2_factory = {
-            "BcPL",      // manu
-            "BaconPaul", // manu name
+            "SoEm",      // manu
+            "Soundemote", // manu name
             clap_get_auv2_info};
         return &sidequest_auv2_factory;
     }
     if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_INFO_VST3) == 0)
     {
         static const struct clap_plugin_factory_as_vst3 sidequest_vst3_factory = {
-            "BaconPaul", "https://baconpaul.org", "", clap_get_vst3_info};
+            "Soundemote", "https://github.com/soundemote/asciiscope-clap", "",
+            clap_get_vst3_info};
 
         return &sidequest_vst3_factory;
     }
@@ -138,7 +139,7 @@ const void *get_factory(const char *factory_id)
 bool clap_init(const char *p)
 {
     // sst::plugininfra::misc_platform::allocateConsole();
-    SQLOG("Initializing SideQuest "
+    SQLOG("Initializing Asciiscope CLAP "
           << sst::plugininfra::VersionInformation::project_version_and_hash << " / "
           << sst::plugininfra::VersionInformation::git_implied_display_version);
     return true;

@@ -13,8 +13,8 @@ string(TIMESTAMP YEAR "%Y")
 math(EXPR PART0 "${YEAR}-2025 + 5")
 math(EXPR PART1 "${DAY_OF_YEAR} + 1")
 
-project(sidequest-startingpoint VERSION 0.${PART0}.${PART1} LANGUAGES C CXX)
-set(PRODUCT_NAME "SideQuest")
+project(asciiscope-clap VERSION 0.${PART0}.${PART1} LANGUAGES C CXX)
+set(PRODUCT_NAME "Asciiscope CLAP")
 
 
 option(USE_SANITIZER "Build and link with ASAN" FALSE)
@@ -54,7 +54,7 @@ target_include_directories(${PROJECT_NAME}-impl PUBLIC src)
 # Important setup variables
 target_compile_definitions(${PROJECT_NAME}-impl PRIVATE
         PRODUCT_NAME="${PRODUCT_NAME}"
-        PATCH_EXTENSION=".sqfix"
+        PATCH_EXTENSION=".ascope"
 )
 
 if (${BUILD_SINGLE_ONLY})
@@ -96,7 +96,7 @@ make_clapfirst_plugins(
 
         ENTRY_SOURCE src/clap/plugin-clap-entry.cpp
 
-        BUNDLE_IDENTIFER "org.baconpaul.sidequest"
+        BUNDLE_IDENTIFER "org.soundemote.asciiscope.clap"
         BUNDLE_VERSION ${PROJECT_VERSION}
 
         COPY_AFTER_BUILD ${COPY_AFTER_BUILD}
@@ -109,12 +109,11 @@ make_clapfirst_plugins(
         #   target-postfix output-name clap-id
         # This allows you to make multiple standalones from a multi-plugin clap
         STANDALONE_CONFIGURATIONS
-            standalone "${PRODUCT_NAME}" "org.baconpaul.sidequest"
+            standalone "${PRODUCT_NAME}" "org.soundemote.asciiscope.clap"
 
         # STANDALONE_MACOS_ICON "${CMAKE_SOURCE_DIR}/resources/mac_installer/Icon.icns"
 )
 
 add_subdirectory(tests)
-
 
 

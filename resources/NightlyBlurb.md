@@ -1,2 +1,3 @@
-This is the nightly build of the side quest starting point. 
-You do not want this. Its a test pre-plugin.
+This is a nightly build of Asciiscope CLAP.
+
+It is an early Soundemote plugin shell for dark signal visuals in CLAP/JUCE hosts.
