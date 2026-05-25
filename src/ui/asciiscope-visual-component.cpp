@@ -24,16 +24,36 @@ namespace
 {
 constexpr auto glyphRamp = " .:-=+*#%@";
 
-juce::Colour phosphorFor(float energy)
+juce::Colour phosphorFor(float energy, int palette)
 {
     const auto e = std::clamp(energy, 0.0f, 1.0f);
-    if (e > 0.82f)
-        return juce::Colour(0xfff7fbff);
-    if (e > 0.58f)
-        return juce::Colour(0xff5efcff);
-    if (e > 0.32f)
-        return juce::Colour(0xffb35cff);
-    return juce::Colour(0xff276dff).withAlpha(0.82f);
+    switch (palette % 3)
+    {
+    case 1:
+        if (e > 0.82f)
+            return juce::Colour(0xfffff3d8);
+        if (e > 0.58f)
+            return juce::Colour(0xffffb000);
+        if (e > 0.32f)
+            return juce::Colour(0xffff4a3d);
+        return juce::Colour(0xff7a1e15).withAlpha(0.82f);
+    case 2:
+        if (e > 0.82f)
+            return juce::Colour(0xffffffff);
+        if (e > 0.58f)
+            return juce::Colour(0xffa6f6ff);
+        if (e > 0.32f)
+            return juce::Colour(0xff67a6ff);
+        return juce::Colour(0xff233d88).withAlpha(0.82f);
+    default:
+        if (e > 0.82f)
+            return juce::Colour(0xfff7fbff);
+        if (e > 0.58f)
+            return juce::Colour(0xff5efcff);
+        if (e > 0.32f)
+            return juce::Colour(0xffb35cff);
+        return juce::Colour(0xff276dff).withAlpha(0.82f);
+    }
 }
 
 float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
@@ -87,6 +107,12 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
     }
 }
 
+void AsciiscopeVisualComponent::setVisualOptions(int mode, int selectedPalette)
+{
+    scopeMode = std::clamp(mode, 0, 2);
+    palette = std::clamp(selectedPalette, 0, 2);
+}
+
 void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 {
     const auto bounds = getLocalBounds().toFloat();
@@ -127,8 +153,14 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
                                 -0.48f, 0.48f);
         }
 
+        if (scopeMode == 1)
+            sample = std::abs(sample) * 0.88f - 0.22f;
+        else if (scopeMode == 2)
+            sample = std::sin(sample * 5.0f + phase * 1.7f + t * 0.8f) * (0.18f + energy * 0.32f);
+
         const auto waveA = sample;
-        const auto waveB = std::sin(phase * 5.0f - t * 1.7f) * (0.10f + rightLevel * 0.16f);
+        const auto waveB = std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
+                           (0.10f + rightLevel * 0.16f);
         const auto centre = 0.5f + waveA + waveB;
         const auto glow = std::clamp(0.10f + energy * 0.55f, 0.0f, 0.75f);
 
@@ -143,7 +175,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
             const auto glyphIndex = std::clamp(static_cast<int>(intensity * 9.0f), 0, 9);
             const char text[] = {glyphRamp[glyphIndex], 0};
-            g.setColour(phosphorFor(intensity));
+            g.setColour(phosphorFor(intensity, palette));
             g.drawText(text,
                        juce::Rectangle<float>(scope.getX() + static_cast<float>(x) * cellW,
                                               scope.getY() + static_cast<float>(y) * cellH,
@@ -154,8 +186,9 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
     g.setColour(juce::Colour(0xff5efcff).withAlpha(0.85f));
     g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
-    g.drawText(hasSnapshot ? "ASCIISCOPE CLAP // audio snapshot feed"
-                           : "ASCIISCOPE CLAP // demo visual feed",
+    const char *modeName = scopeMode == 0 ? "wave" : (scopeMode == 1 ? "mirror" : "spectral");
+    g.drawText(juce::String("ASCIISCOPE CLAP // ") + modeName +
+                   (hasSnapshot ? " snapshot feed" : " demo feed"),
                scope.reduced(7.0f), juce::Justification::topLeft, false);
 }
 } // namespace baconpaul::sidequest_ns::ui

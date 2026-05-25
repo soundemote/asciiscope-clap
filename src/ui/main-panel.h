@@ -30,6 +30,7 @@ struct MainPanel : sst::jucegui::components::NamedPanel
     void tickVisual();
     void setVisualLevels(float left, float right);
     void setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot);
+    void setVisualOptions(int mode, int palette);
 
     std::unique_ptr<AsciiscopeVisualComponent> visual;
     std::vector<std::unique_ptr<sst::jucegui::components::Knob>> knobs;

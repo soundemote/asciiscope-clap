@@ -37,8 +37,9 @@ done  : visible product/plugin identity rename to Asciiscope CLAP
 done  : tiny JUCE visual component with demo/VU-derived motion
 done  : audio-to-editor visual snapshot boundary
 done  : rolling UI-side waveform history for block snapshots
+done  : simple Scope Mode and Palette plugin parameters
 kept  : existing engine/editor/classes/namespace shape
-next  : expose a simple scope mode/palette control
+next  : richer snapshot-fed modes
 later : Asciiscope scene/render adapter
 ```
 

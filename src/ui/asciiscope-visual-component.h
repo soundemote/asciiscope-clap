@@ -34,6 +34,7 @@ struct AsciiscopeVisualComponent : juce::Component
     void tick();
     void setLevels(float left, float right);
     void setSnapshot(const AsciiscopeAudioSnapshot &snapshot);
+    void setVisualOptions(int mode, int palette);
 
     static constexpr uint32_t historySize{512};
 
@@ -41,6 +42,8 @@ struct AsciiscopeVisualComponent : juce::Component
     std::array<float, historySize> monoHistory{};
     uint32_t historyWrite{0};
     uint32_t historyCount{0};
+    int scopeMode{0};
+    int palette{0};
     bool hasSnapshot{false};
     float leftLevel{0.0f};
     float rightLevel{0.0f};

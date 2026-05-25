@@ -129,7 +129,21 @@ struct Patch : pats::PatchBase<Patch, Param>
                         .withDefault(0)
                         .withName("Pitch Offset")
                         .withID(id(0))),
-              harmlev(floatMd().asPercent().withDefault(0.f).withName("Harmonic 2").withID(id(1)))
+              harmlev(floatMd().asPercent().withDefault(0.f).withName("Harmonic 2").withID(id(1))),
+              scopeMode(intMd()
+                            .withRange(0, 2)
+                            .withDefault(0)
+                            .withName("Scope Mode")
+                            .withID(id(2))
+                            .withGroupName("Visual")
+                            .withUnorderedMapFormatting({{0, "Wave"}, {1, "Mirror"}, {2, "Spectral"}})),
+              palette(intMd()
+                          .withRange(0, 2)
+                          .withDefault(0)
+                          .withName("Palette")
+                          .withID(id(3))
+                          .withGroupName("Visual")
+                          .withUnorderedMapFormatting({{0, "Neon"}, {1, "Ember"}, {2, "Ice"}}))
 
         {
         }
@@ -137,11 +151,11 @@ struct Patch : pats::PatchBase<Patch, Param>
         std::string name() const { return "Asciiscope"; }
         uint32_t id(int f) const { return idBase + f; }
 
-        Param pitch, harmlev;
+        Param pitch, harmlev, scopeMode, palette;
 
         std::vector<Param *> params()
         {
-            std::vector<Param *> res{&pitch, &harmlev};
+            std::vector<Param *> res{&pitch, &harmlev, &scopeMode, &palette};
             return res;
         }
     };
