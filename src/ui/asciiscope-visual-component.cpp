@@ -253,13 +253,15 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     if (hasSnapshot)
     {
         const auto age = std::max(0, frame - latestSnapshotFrame);
+        const auto isStale = age > 8;
+        const auto feedState = isStale ? "stale" : "live";
         const auto feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
                           " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
-                          " // age " + juce::String(age) +
+                          " // " + feedState + " age " + juce::String(age) +
                           " // rms " + juce::String(displayRms, 3) +
                           " // corr " + juce::String(displayCorrelation, 2) +
                           " // crest " + juce::String(displayTransient, 2);
-        g.setColour(phosphorFor(0.50f, palette).withAlpha(0.72f));
+        g.setColour((isStale ? juce::Colour(0xffff4a3d) : phosphorFor(0.50f, palette)).withAlpha(0.72f));
         g.drawText(feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
     }
 }
