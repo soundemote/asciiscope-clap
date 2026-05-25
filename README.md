@@ -36,8 +36,9 @@ This repo is still intentionally close to the startingpoint architecture.
 done  : visible product/plugin identity rename to Asciiscope CLAP
 done  : tiny JUCE visual component with demo/VU-derived motion
 done  : audio-to-editor visual snapshot boundary
+done  : rolling UI-side waveform history for block snapshots
 kept  : existing engine/editor/classes/namespace shape
-next  : richer snapshot-fed drawing
+next  : expose a simple scope mode/palette control
 later : Asciiscope scene/render adapter
 ```
 
@@ -92,6 +93,9 @@ DemoVisualInput
 
 AudioVisualSnapshot
 // lock-safe handoff from audio thread to editor thread, now present in minimal form
+
+RollingWaveformHistory
+// UI-side fixed buffer that turns small audio blocks into a visible trace
 
 SignalFrameAdapter
 // maps plugin data toward Asciiscope SignalFrame concepts

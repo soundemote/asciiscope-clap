@@ -35,6 +35,20 @@ juce::Colour phosphorFor(float energy)
         return juce::Colour(0xffb35cff);
     return juce::Colour(0xff276dff).withAlpha(0.82f);
 }
+
+float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
+                  uint32_t write, uint32_t count, float position)
+{
+    if (count == 0)
+        return 0.0f;
+
+    const auto clampedPosition = std::clamp(position, 0.0f, 1.0f);
+    const auto newestDistance = static_cast<uint32_t>((1.0f - clampedPosition) *
+                                                      static_cast<float>(count - 1));
+    const auto index = (write + AsciiscopeVisualComponent::historySize - 1U - newestDistance) %
+                       AsciiscopeVisualComponent::historySize;
+    return history[index];
+}
 } // namespace
 
 AsciiscopeVisualComponent::AsciiscopeVisualComponent()
@@ -63,6 +77,14 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
     hasSnapshot = snapshot.sampleCount > 0;
     leftLevel = std::clamp(snapshot.leftPeak, 0.0f, 1.0f);
     rightLevel = std::clamp(snapshot.rightPeak, 0.0f, 1.0f);
+
+    for (uint32_t i = 0; i < snapshot.sampleCount; ++i)
+    {
+        monoHistory[historyWrite] = std::clamp((snapshot.left[i] + snapshot.right[i]) * 0.5f,
+                                               -1.0f, 1.0f);
+        historyWrite = (historyWrite + 1U) % historySize;
+        historyCount = std::min(historyCount + 1U, historySize);
+    }
 }
 
 void AsciiscopeVisualComponent::paint(juce::Graphics &g)
@@ -100,10 +122,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         auto sample = std::sin(phase * 2.0f + t) * (0.23f + leftLevel * 0.25f);
         if (hasSnapshot)
         {
-            const auto sourceIndex = static_cast<uint32_t>(
-                std::clamp((x * static_cast<int>(snapshot.sampleCount)) / std::max(1, cols), 0,
-                           static_cast<int>(snapshot.sampleCount) - 1));
-            sample = std::clamp((snapshot.left[sourceIndex] + snapshot.right[sourceIndex]) * 0.42f,
+            const auto historyPosition = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
+            sample = std::clamp(readHistory(monoHistory, historyWrite, historyCount, historyPosition) * 0.54f,
                                 -0.48f, 0.48f);
         }
 
