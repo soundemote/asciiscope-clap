@@ -242,7 +242,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         const auto feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
                           " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
                           " // age " + juce::String(age) +
-                          " // rms " + juce::String((snapshot.leftRms + snapshot.rightRms) * 0.5f, 3);
+                          " // rms " + juce::String((snapshot.leftRms + snapshot.rightRms) * 0.5f, 3) +
+                          " // corr " + juce::String(snapshot.stereoCorrelation, 2);
         g.setColour(phosphorFor(0.50f, palette).withAlpha(0.72f));
         g.drawText(feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
     }

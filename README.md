@@ -41,6 +41,7 @@ done  : simple Scope Mode and Palette plugin parameters
 done  : Trace Gain parameter for pushing quiet input into visible motion
 done  : stereo snapshot history for width-reactive visual motion
 done  : snapshot block/frame/age readouts for host testing
+done  : stereo correlation in the audio snapshot readout
 kept  : existing engine/editor/classes/namespace shape
 next  : richer snapshot-fed modes
 later : Asciiscope scene/render adapter
