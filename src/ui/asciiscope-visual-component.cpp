@@ -127,10 +127,14 @@ void AsciiscopeVisualComponent::resized() {}
 void AsciiscopeVisualComponent::tick()
 {
     ++frame;
+    const auto leftAlpha = leftLevel > displayLeftLevel ? 0.42f : 0.10f;
+    const auto rightAlpha = rightLevel > displayRightLevel ? 0.42f : 0.10f;
     const auto rmsTarget = hasSnapshot ? (snapshot.leftRms + snapshot.rightRms) * 0.5f : 0.0f;
     const auto transientTarget = hasSnapshot ? snapshot.transientAmount : 0.0f;
     const auto correlationTarget = hasSnapshot ? snapshot.stereoCorrelation : 0.0f;
     const auto transientAlpha = transientTarget > displayTransient ? 0.36f : 0.08f;
+    displayLeftLevel += (leftLevel - displayLeftLevel) * leftAlpha;
+    displayRightLevel += (rightLevel - displayRightLevel) * rightAlpha;
     displayRms += (rmsTarget - displayRms) * 0.18f;
     displayCorrelation += (correlationTarget - displayCorrelation) * 0.16f;
     displayTransient += (transientTarget - displayTransient) * transientAlpha;
@@ -191,7 +195,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         g.drawHorizontalLine(static_cast<int>(y), scope.getX(), scope.getRight());
     }
 
-    const auto energy = std::clamp(0.18f + leftLevel * 0.62f + rightLevel * 0.42f, 0.0f, 1.0f);
+    const auto energy = std::clamp(0.18f + displayLeftLevel * 0.62f + displayRightLevel * 0.42f, 0.0f, 1.0f);
     const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(displayCorrelation), 0.0f, 1.0f) : 0.0f;
     const auto transient = hasSnapshot ? displayTransient : 0.0f;
     const auto rows = std::max(8, static_cast<int>(scope.getHeight() / 11.0f));
@@ -204,8 +208,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     {
         const auto phase = (static_cast<float>(x) / static_cast<float>(cols)) * juce::MathConstants<float>::twoPi;
         const auto t = static_cast<float>(frame) * 0.065f;
-        auto sample = std::sin(phase * 2.0f + t) * (0.23f + leftLevel * 0.25f);
-        auto stereoSpread = std::sin(phase * 3.0f - t * 0.7f) * rightLevel * 0.12f;
+        auto sample = std::sin(phase * 2.0f + t) * (0.23f + displayLeftLevel * 0.25f);
+        auto stereoSpread = std::sin(phase * 3.0f - t * 0.7f) * displayRightLevel * 0.12f;
         if (hasSnapshot)
         {
             const auto historyPosition = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
@@ -227,7 +231,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
         const auto waveA = sample + stereoSpread;
         const auto waveB = std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
-                           (0.10f + rightLevel * 0.16f);
+                           (0.10f + displayRightLevel * 0.16f);
         const auto centre = 0.5f + waveA + waveB;
         const auto glow = std::clamp(0.10f + energy * 0.55f + transient * 0.18f, 0.0f, 0.82f);
 
@@ -265,14 +269,15 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     const auto readout = juce::String("mode ") + juce::String(scopeMode) + " " + modeName(scopeMode) +
                          " // palette " + juce::String(palette) + " " + paletteName(palette) +
                          " // gain " + juce::String(traceGain, 2) +
-                         " // L " + juce::String(leftLevel, 2) + " R " + juce::String(rightLevel, 2);
+                         " // L " + juce::String(displayLeftLevel, 2) + " R " +
+                         juce::String(displayRightLevel, 2);
     g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
     g.drawText(readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
 
     auto meterArea = scope.reduced(7.0f).withHeight(19.0f).withWidth(118.0f);
-    drawMeter(g, meterArea.removeFromTop(8.0f), leftLevel, phosphorFor(0.62f, palette), "L");
+    drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, phosphorFor(0.62f, palette), "L");
     meterArea.removeFromTop(3.0f);
-    drawMeter(g, meterArea.removeFromTop(8.0f), rightLevel, phosphorFor(0.48f, palette), "R");
+    drawMeter(g, meterArea.removeFromTop(8.0f), displayRightLevel, phosphorFor(0.48f, palette), "R");
 
     if (hasSnapshot)
     {

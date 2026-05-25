@@ -51,6 +51,8 @@ struct AsciiscopeVisualComponent : juce::Component
     bool hasSnapshot{false};
     float leftLevel{0.0f};
     float rightLevel{0.0f};
+    float displayLeftLevel{0.0f};
+    float displayRightLevel{0.0f};
     float displayRms{0.0f};
     float displayCorrelation{0.0f};
     float displayTransient{0.0f};
