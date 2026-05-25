@@ -108,6 +108,13 @@ void AsciiscopeVisualComponent::resized() {}
 void AsciiscopeVisualComponent::tick()
 {
     ++frame;
+    const auto rmsTarget = hasSnapshot ? (snapshot.leftRms + snapshot.rightRms) * 0.5f : 0.0f;
+    const auto transientTarget = hasSnapshot ? snapshot.transientAmount : 0.0f;
+    const auto correlationTarget = hasSnapshot ? snapshot.stereoCorrelation : 0.0f;
+    const auto transientAlpha = transientTarget > displayTransient ? 0.36f : 0.08f;
+    displayRms += (rmsTarget - displayRms) * 0.18f;
+    displayCorrelation += (correlationTarget - displayCorrelation) * 0.16f;
+    displayTransient += (transientTarget - displayTransient) * transientAlpha;
     repaint();
 }
 
@@ -166,8 +173,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     }
 
     const auto energy = std::clamp(0.18f + leftLevel * 0.62f + rightLevel * 0.42f, 0.0f, 1.0f);
-    const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(snapshot.stereoCorrelation), 0.0f, 1.0f) : 0.0f;
-    const auto transient = hasSnapshot ? snapshot.transientAmount : 0.0f;
+    const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(displayCorrelation), 0.0f, 1.0f) : 0.0f;
+    const auto transient = hasSnapshot ? displayTransient : 0.0f;
     const auto rows = std::max(8, static_cast<int>(scope.getHeight() / 11.0f));
     const auto cols = std::max(24, static_cast<int>(scope.getWidth() / 8.0f));
     const auto cellW = scope.getWidth() / static_cast<float>(cols);
@@ -249,9 +256,9 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         const auto feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
                           " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
                           " // age " + juce::String(age) +
-                          " // rms " + juce::String((snapshot.leftRms + snapshot.rightRms) * 0.5f, 3) +
-                          " // corr " + juce::String(snapshot.stereoCorrelation, 2) +
-                          " // crest " + juce::String(snapshot.transientAmount, 2);
+                          " // rms " + juce::String(displayRms, 3) +
+                          " // corr " + juce::String(displayCorrelation, 2) +
+                          " // crest " + juce::String(displayTransient, 2);
         g.setColour(phosphorFor(0.50f, palette).withAlpha(0.72f));
         g.drawText(feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
     }
