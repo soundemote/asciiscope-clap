@@ -79,6 +79,16 @@ Engine::process()
     -> AsciiscopeVisualComponent::paint(juce::Graphics&)
 ```
 
+Current extraction seams:
+
+```markdown
+signal enters        : Engine::process() captures output blocks
+state updates        : PluginEditor::idle() drains the latest snapshot
+drawing happens      : AsciiscopeVisualComponent::paint()
+reusable core        : snapshot shape, rolling history, visual mode math
+plugin/editor shell  : patch params, MainPanel ownership, JUCE repaint loop
+```
+
 Do not make the terminal app become a plugin project. The plugin should adapt to
 Asciiscope concepts.
 
