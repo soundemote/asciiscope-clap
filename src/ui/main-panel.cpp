@@ -71,4 +71,10 @@ void MainPanel::setVisualLevels(float left, float right)
         visual->setLevels(left, right);
 }
 
+void MainPanel::setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot)
+{
+    if (visual)
+        visual->setSnapshot(snapshot);
+}
+
 } // namespace baconpaul::sidequest_ns::ui

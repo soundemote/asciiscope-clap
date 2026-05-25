@@ -124,6 +124,8 @@ void Engine::process(const clap_output_events_t *outq)
 
     if (isEditorAttached)
     {
+        visualSnapshots.publish(output[0], output[1], blockSize);
+
         for (int i = 0; i < blockSize; ++i)
         {
             vuPeak.process(output[0][i], output[1][i]);

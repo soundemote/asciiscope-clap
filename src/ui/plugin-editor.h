@@ -50,12 +50,13 @@ struct PluginEditor : jcmp::WindowPanel
 {
     Patch patchCopy;
 
+    Engine &engine;
     Engine::audioToUIQueue_t &audioToUI;
     Engine::mainToAudioQueue_T &mainToAudio;
     const clap_host_t *clapHost{nullptr};
 
-    PluginEditor(Engine::audioToUIQueue_t &atou, Engine::mainToAudioQueue_T &utoa,
-                 const clap_host_t *ch);
+    PluginEditor(Engine &engine, Engine::audioToUIQueue_t &atou,
+                 Engine::mainToAudioQueue_T &utoa, const clap_host_t *ch);
     virtual ~PluginEditor();
 
     std::unique_ptr<sst::jucegui::style::LookAndFeelManager> lnf;
@@ -117,6 +118,8 @@ struct PluginEditor : jcmp::WindowPanel
     static constexpr uint32_t edWidth{600}, edHeight{400};
 
     std::unique_ptr<jcmp::VUMeter> vuMeter;
+    AsciiscopeAudioSnapshot latestVisualSnapshot;
+    uint64_t latestVisualFrameSeen{0};
 
     void visibilityChanged() override;
     void parentHierarchyChanged() override;

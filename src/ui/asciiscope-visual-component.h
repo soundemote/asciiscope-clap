@@ -18,6 +18,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "engine/asciiscope-audio-snapshot.h"
+
 namespace baconpaul::sidequest_ns::ui
 {
 struct AsciiscopeVisualComponent : juce::Component
@@ -29,7 +31,10 @@ struct AsciiscopeVisualComponent : juce::Component
 
     void tick();
     void setLevels(float left, float right);
+    void setSnapshot(const AsciiscopeAudioSnapshot &snapshot);
 
+    AsciiscopeAudioSnapshot snapshot;
+    bool hasSnapshot{false};
     float leftLevel{0.0f};
     float rightLevel{0.0f};
     int frame{0};

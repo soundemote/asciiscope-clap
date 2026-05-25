@@ -57,6 +57,14 @@ void AsciiscopeVisualComponent::setLevels(float left, float right)
     rightLevel = std::clamp(right, 0.0f, 1.0f);
 }
 
+void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
+{
+    snapshot = s;
+    hasSnapshot = snapshot.sampleCount > 0;
+    leftLevel = std::clamp(snapshot.leftPeak, 0.0f, 1.0f);
+    rightLevel = std::clamp(snapshot.rightPeak, 0.0f, 1.0f);
+}
+
 void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 {
     const auto bounds = getLocalBounds().toFloat();
@@ -89,7 +97,17 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     {
         const auto phase = (static_cast<float>(x) / static_cast<float>(cols)) * juce::MathConstants<float>::twoPi;
         const auto t = static_cast<float>(frame) * 0.065f;
-        const auto waveA = std::sin(phase * 2.0f + t) * (0.23f + leftLevel * 0.25f);
+        auto sample = std::sin(phase * 2.0f + t) * (0.23f + leftLevel * 0.25f);
+        if (hasSnapshot)
+        {
+            const auto sourceIndex = static_cast<uint32_t>(
+                std::clamp((x * static_cast<int>(snapshot.sampleCount)) / std::max(1, cols), 0,
+                           static_cast<int>(snapshot.sampleCount) - 1));
+            sample = std::clamp((snapshot.left[sourceIndex] + snapshot.right[sourceIndex]) * 0.42f,
+                                -0.48f, 0.48f);
+        }
+
+        const auto waveA = sample;
         const auto waveB = std::sin(phase * 5.0f - t * 1.7f) * (0.10f + rightLevel * 0.16f);
         const auto centre = 0.5f + waveA + waveB;
         const auto glow = std::clamp(0.10f + energy * 0.55f, 0.0f, 0.75f);
@@ -116,7 +134,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
     g.setColour(juce::Colour(0xff5efcff).withAlpha(0.85f));
     g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
-    g.drawText("ASCIISCOPE CLAP // demo visual feed",
+    g.drawText(hasSnapshot ? "ASCIISCOPE CLAP // audio snapshot feed"
+                           : "ASCIISCOPE CLAP // demo visual feed",
                scope.reduced(7.0f), juce::Justification::topLeft, false);
 }
 } // namespace baconpaul::sidequest_ns::ui

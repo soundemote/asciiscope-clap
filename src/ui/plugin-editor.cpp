@@ -39,9 +39,9 @@ namespace jstl = sst::jucegui::style;
 using sheet_t = jstl::StyleSheet;
 static constexpr sheet_t::Class PatchMenu("sidequest.patch-menu");
 
-PluginEditor::PluginEditor(Engine::audioToUIQueue_t &atou, Engine::mainToAudioQueue_T &utoa,
-                           const clap_host_t *h)
-    : jcmp::WindowPanel(true), audioToUI(atou), mainToAudio(utoa), clapHost(h)
+PluginEditor::PluginEditor(Engine &e, Engine::audioToUIQueue_t &atou,
+                           Engine::mainToAudioQueue_T &utoa, const clap_host_t *h)
+    : jcmp::WindowPanel(true), engine(e), audioToUI(atou), mainToAudio(utoa), clapHost(h)
 {
     setTitle("Asciiscope CLAP");
     setAccessible(true);
@@ -180,7 +180,11 @@ void PluginEditor::idle()
     }
 
     if (mainPanel)
+    {
+        if (engine.visualSnapshots.pullLatest(latestVisualSnapshot, latestVisualFrameSeen))
+            mainPanel->setVisualSnapshot(latestVisualSnapshot);
         mainPanel->tickVisual();
+    }
 }
 
 void PluginEditor::paint(juce::Graphics &g)

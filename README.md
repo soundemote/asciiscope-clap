@@ -35,8 +35,9 @@ This repo is still intentionally close to the startingpoint architecture.
 ```markdown
 done  : visible product/plugin identity rename to Asciiscope CLAP
 done  : tiny JUCE visual component with demo/VU-derived motion
+done  : audio-to-editor visual snapshot boundary
 kept  : existing engine/editor/classes/namespace shape
-next  : audio-to-visual snapshot buffer
+next  : richer snapshot-fed drawing
 later : Asciiscope scene/render adapter
 ```
 
@@ -68,7 +69,7 @@ Near-term insertion point:
 
 ```text
 Engine::process()
-    -> lightweight visual snapshot
+    -> lightweight visual snapshot, published with non-blocking try_lock
     -> PluginEditor::idle()
     -> AsciiscopeVisualComponent::repaint()
     -> AsciiscopeVisualComponent::paint(juce::Graphics&)
@@ -76,6 +77,9 @@ Engine::process()
 
 Do not make the terminal app become a plugin project. The plugin should adapt to
 Asciiscope concepts.
+
+`IVisualSurface` is still deferred. The current priority is learning what the
+JUCE editor needs from snapshot-fed drawing before shaping a shared surface API.
 
 ## future
 
@@ -87,7 +91,7 @@ DemoVisualInput
 // non-audio first visual feed for proving editor rendering
 
 AudioVisualSnapshot
-// lock-safe handoff from audio thread to editor thread
+// lock-safe handoff from audio thread to editor thread, now present in minimal form
 
 SignalFrameAdapter
 // maps plugin data toward Asciiscope SignalFrame concepts
