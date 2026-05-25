@@ -133,10 +133,11 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
     }
 }
 
-void AsciiscopeVisualComponent::setVisualOptions(int mode, int selectedPalette)
+void AsciiscopeVisualComponent::setVisualOptions(int mode, int selectedPalette, float gain)
 {
     scopeMode = std::clamp(mode, 0, 2);
     palette = std::clamp(selectedPalette, 0, 2);
+    traceGain = std::clamp(0.25f + gain * 2.75f, 0.25f, 3.0f);
 }
 
 void AsciiscopeVisualComponent::paint(juce::Graphics &g)
@@ -175,8 +176,13 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         if (hasSnapshot)
         {
             const auto historyPosition = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
-            sample = std::clamp(readHistory(monoHistory, historyWrite, historyCount, historyPosition) * 0.54f,
+            sample = std::clamp(readHistory(monoHistory, historyWrite, historyCount, historyPosition) *
+                                    0.54f * traceGain,
                                 -0.48f, 0.48f);
+        }
+        else
+        {
+            sample = std::clamp(sample * traceGain, -0.48f, 0.48f);
         }
 
         if (scopeMode == 1)
@@ -218,6 +224,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 
     const auto readout = juce::String("mode ") + juce::String(scopeMode) + " " + modeName(scopeMode) +
                          " // palette " + juce::String(palette) + " " + paletteName(palette) +
+                         " // gain " + juce::String(traceGain, 2) +
                          " // L " + juce::String(leftLevel, 2) + " R " + juce::String(rightLevel, 2);
     g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
     g.drawText(readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);

@@ -77,10 +77,10 @@ void MainPanel::setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot)
         visual->setSnapshot(snapshot);
 }
 
-void MainPanel::setVisualOptions(int mode, int palette)
+void MainPanel::setVisualOptions(int mode, int palette, float gain)
 {
     if (visual)
-        visual->setVisualOptions(mode, palette);
+        visual->setVisualOptions(mode, palette, gain);
 }
 
 } // namespace baconpaul::sidequest_ns::ui
