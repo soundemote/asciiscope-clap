@@ -23,6 +23,9 @@ namespace baconpaul::sidequest_ns::ui
 MainPanel::MainPanel(PluginEditor &e)
     : sst::jucegui::components::NamedPanel("Main Panel"), editor(e)
 {
+    visual = std::make_unique<AsciiscopeVisualComponent>();
+    addAndMakeVisible(*visual);
+
     knobs.resize(e.patchCopy.params.size());
     knobAs.resize(e.patchCopy.params.size());
     for (int i = 0; i < e.patchCopy.params.size(); i++)
@@ -37,7 +40,10 @@ void MainPanel::resized()
     auto b = getContentArea();
     auto w = b.getWidth();
     auto x = b.getX();
-    auto y = b.getY();
+    auto visualHeight = std::max(110, b.getHeight() * 2 / 3);
+    visual->setBounds(b.withHeight(visualHeight).reduced(2));
+
+    auto y = b.getY() + visualHeight + 8;
     auto spw = 50;
     auto sph = 70;
 
@@ -51,6 +57,18 @@ void MainPanel::resized()
             y += sph;
         }
     }
+}
+
+void MainPanel::tickVisual()
+{
+    if (visual)
+        visual->tick();
+}
+
+void MainPanel::setVisualLevels(float left, float right)
+{
+    if (visual)
+        visual->setLevels(left, right);
 }
 
 } // namespace baconpaul::sidequest_ns::ui

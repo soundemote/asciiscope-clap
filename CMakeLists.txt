@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME}-impl STATIC
 
         src/ui/plugin-editor.cpp
         src/ui/main-panel.cpp
+        src/ui/asciiscope-visual-component.cpp
 
         src/presets/preset-manager.cpp
 
@@ -115,5 +116,4 @@ make_clapfirst_plugins(
 )
 
 add_subdirectory(tests)
-
 

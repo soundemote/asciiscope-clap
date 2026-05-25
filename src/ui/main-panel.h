@@ -17,6 +17,7 @@
 #define BACONPAUL_SIDEQUEST_UI_MAIN_PANEL_H
 
 #include "sst/jucegui/components/NamedPanel.h"
+#include "asciiscope-visual-component.h"
 #include "patch-data-bindings.h"
 #include "plugin-editor.h"
 
@@ -26,7 +27,10 @@ struct MainPanel : sst::jucegui::components::NamedPanel
 {
     MainPanel(PluginEditor &editor);
     void resized() override;
+    void tickVisual();
+    void setVisualLevels(float left, float right);
 
+    std::unique_ptr<AsciiscopeVisualComponent> visual;
     std::vector<std::unique_ptr<sst::jucegui::components::Knob>> knobs;
     std::vector<std::unique_ptr<PatchContinuous>> knobAs;
 

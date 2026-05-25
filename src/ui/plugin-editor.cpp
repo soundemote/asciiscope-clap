@@ -136,6 +136,8 @@ void PluginEditor::idle()
         else if (aum->action == Engine::AudioToUIMsg::UPDATE_VU)
         {
             vuMeter->setLevels(aum->value, aum->value2);
+            if (mainPanel)
+                mainPanel->setVisualLevels(aum->value, aum->value2);
         }
         else if (aum->action == Engine::AudioToUIMsg::UPDATE_VOICE_COUNT)
         {
@@ -176,6 +178,9 @@ void PluginEditor::idle()
         }
         aum = audioToUI.pop();
     }
+
+    if (mainPanel)
+        mainPanel->tickVisual();
 }
 
 void PluginEditor::paint(juce::Graphics &g)

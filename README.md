@@ -34,9 +34,9 @@ This repo is still intentionally close to the startingpoint architecture.
 
 ```markdown
 done  : visible product/plugin identity rename to Asciiscope CLAP
+done  : tiny JUCE visual component with demo/VU-derived motion
 kept  : existing engine/editor/classes/namespace shape
-next  : tiny JUCE visual component
-later : audio-to-visual snapshot buffer
+next  : audio-to-visual snapshot buffer
 later : Asciiscope scene/render adapter
 ```
 
