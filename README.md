@@ -48,6 +48,7 @@ done  : smoothed visual metrics for steadier host readouts
 done  : live/stale snapshot feed indicator
 done  : compact L/R meters inside the scope frame
 done  : smoothed L/R levels for steadier meters and motion
+done  : sin/cos circle diagnostic button with frequency control
 kept  : existing engine/editor/classes/namespace shape
 next  : richer snapshot-fed modes
 later : Asciiscope scene/render adapter

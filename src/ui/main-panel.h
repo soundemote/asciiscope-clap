@@ -17,6 +17,7 @@
 #define BACONPAUL_SIDEQUEST_UI_MAIN_PANEL_H
 
 #include "sst/jucegui/components/NamedPanel.h"
+#include <juce_gui_basics/juce_gui_basics.h>
 #include "asciiscope-visual-component.h"
 #include "patch-data-bindings.h"
 #include "plugin-editor.h"
@@ -30,9 +31,11 @@ struct MainPanel : sst::jucegui::components::NamedPanel
     void tickVisual();
     void setVisualLevels(float left, float right);
     void setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot);
-    void setVisualOptions(int mode, int palette, float gain);
+    void setVisualOptions(int mode, int palette, float gain, float circleFrequency);
 
     std::unique_ptr<AsciiscopeVisualComponent> visual;
+    juce::TextButton circleButton{"Circle"};
+    bool circleDiagnostic{false};
     std::vector<std::unique_ptr<sst::jucegui::components::Knob>> knobs;
     std::vector<std::unique_ptr<PatchContinuous>> knobAs;
 

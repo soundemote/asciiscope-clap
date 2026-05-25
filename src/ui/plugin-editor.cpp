@@ -183,7 +183,8 @@ void PluginEditor::idle()
     {
         mainPanel->setVisualOptions(static_cast<int>(patchCopy.sqParams.scopeMode.value),
                                     static_cast<int>(patchCopy.sqParams.palette.value),
-                                    patchCopy.sqParams.traceGain.value);
+                                    patchCopy.sqParams.traceGain.value,
+                                    patchCopy.sqParams.circleFrequency.value);
         if (engine.visualSnapshots.pullLatest(latestVisualSnapshot, latestVisualFrameSeen))
             mainPanel->setVisualSnapshot(latestVisualSnapshot);
         mainPanel->tickVisual();

@@ -64,7 +64,7 @@ struct Param : pats::ParamBase, sst::cpputils::active_set_overlay<Param>::partic
 
 struct Patch : pats::PatchBase<Patch, Param>
 {
-    static constexpr uint32_t patchVersion{10};
+    static constexpr uint32_t patchVersion{11};
     static constexpr const char *id{"org.soundemote.asciiscope.clap"};
 
     static constexpr uint32_t floatFlags{CLAP_PARAM_IS_AUTOMATABLE};
@@ -149,7 +149,13 @@ struct Patch : pats::PatchBase<Patch, Param>
                             .withDefault(0.58f)
                             .withName("Trace Gain")
                             .withID(id(4))
-                            .withGroupName("Visual"))
+                            .withGroupName("Visual")),
+              circleFrequency(floatMd()
+                                  .asPercent()
+                                  .withDefault(0.25f)
+                                  .withName("Circle Frequency")
+                                  .withID(id(5))
+                                  .withGroupName("Visual"))
 
         {
         }
@@ -157,11 +163,12 @@ struct Patch : pats::PatchBase<Patch, Param>
         std::string name() const { return "Asciiscope"; }
         uint32_t id(int f) const { return idBase + f; }
 
-        Param pitch, harmlev, scopeMode, palette, traceGain;
+        Param pitch, harmlev, scopeMode, palette, traceGain, circleFrequency;
 
         std::vector<Param *> params()
         {
-            std::vector<Param *> res{&pitch, &harmlev, &scopeMode, &palette, &traceGain};
+            std::vector<Param *> res{&pitch, &harmlev, &scopeMode, &palette, &traceGain,
+                                     &circleFrequency};
             return res;
         }
     };

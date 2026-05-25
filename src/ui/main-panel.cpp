@@ -26,6 +26,15 @@ MainPanel::MainPanel(PluginEditor &e)
     visual = std::make_unique<AsciiscopeVisualComponent>();
     addAndMakeVisible(*visual);
 
+    circleButton.setClickingTogglesState(true);
+    circleButton.onClick = [this]()
+    {
+        circleDiagnostic = circleButton.getToggleState();
+        if (visual)
+            visual->setCircleDiagnostic(circleDiagnostic);
+    };
+    addAndMakeVisible(circleButton);
+
     knobs.resize(e.patchCopy.params.size());
     knobAs.resize(e.patchCopy.params.size());
     for (int i = 0; i < e.patchCopy.params.size(); i++)
@@ -46,6 +55,8 @@ void MainPanel::resized()
     auto y = b.getY() + visualHeight + 8;
     auto spw = 50;
     auto sph = 70;
+    circleButton.setBounds(x, y, 80, 24);
+    x += 88;
 
     for (int i = 0; i < editor.patchCopy.params.size(); i++)
     {
@@ -77,10 +88,10 @@ void MainPanel::setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot)
         visual->setSnapshot(snapshot);
 }
 
-void MainPanel::setVisualOptions(int mode, int palette, float gain)
+void MainPanel::setVisualOptions(int mode, int palette, float gain, float circleFrequency)
 {
     if (visual)
-        visual->setVisualOptions(mode, palette, gain);
+        visual->setVisualOptions(mode, palette, gain, circleFrequency);
 }
 
 } // namespace baconpaul::sidequest_ns::ui
