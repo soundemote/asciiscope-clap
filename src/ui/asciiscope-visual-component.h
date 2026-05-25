@@ -44,6 +44,7 @@ struct AsciiscopeVisualComponent : juce::Component
     std::array<float, historySize> rightHistory{};
     uint32_t historyWrite{0};
     uint32_t historyCount{0};
+    int latestSnapshotFrame{0};
     int scopeMode{0};
     int palette{0};
     float traceGain{1.0f};

@@ -123,6 +123,7 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
     hasSnapshot = snapshot.sampleCount > 0;
     leftLevel = std::clamp(snapshot.leftPeak, 0.0f, 1.0f);
     rightLevel = std::clamp(snapshot.rightPeak, 0.0f, 1.0f);
+    latestSnapshotFrame = frame;
 
     for (uint32_t i = 0; i < snapshot.sampleCount; ++i)
     {
@@ -234,5 +235,16 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
                          " // L " + juce::String(leftLevel, 2) + " R " + juce::String(rightLevel, 2);
     g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
     g.drawText(readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
+
+    if (hasSnapshot)
+    {
+        const auto age = std::max(0, frame - latestSnapshotFrame);
+        const auto feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
+                          " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
+                          " // age " + juce::String(age) +
+                          " // rms " + juce::String((snapshot.leftRms + snapshot.rightRms) * 0.5f, 3);
+        g.setColour(phosphorFor(0.50f, palette).withAlpha(0.72f));
+        g.drawText(feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
+    }
 }
 } // namespace baconpaul::sidequest_ns::ui
