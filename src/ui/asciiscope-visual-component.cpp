@@ -166,6 +166,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     }
 
     const auto energy = std::clamp(0.18f + leftLevel * 0.62f + rightLevel * 0.42f, 0.0f, 1.0f);
+    const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(snapshot.stereoCorrelation), 0.0f, 1.0f) : 0.0f;
     const auto rows = std::max(8, static_cast<int>(scope.getHeight() / 11.0f));
     const auto cols = std::max(24, static_cast<int>(scope.getWidth() / 8.0f));
     const auto cellW = scope.getWidth() / static_cast<float>(cols);
@@ -184,7 +185,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
             const auto left = readHistory(leftHistory, historyWrite, historyCount, historyPosition);
             const auto right = readHistory(rightHistory, historyWrite, historyCount, historyPosition);
             sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
-            stereoSpread = std::clamp((left - right) * 0.18f * traceGain, -0.24f, 0.24f);
+            stereoSpread = std::clamp((left - right) * (0.14f + width * 0.12f) * traceGain, -0.28f, 0.28f);
         }
         else
         {
@@ -208,7 +209,12 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
             const auto row = static_cast<float>(y) / static_cast<float>(std::max(1, rows - 1));
             const auto distance = std::abs(row - centre);
             const auto pulse = std::sin(phase * 9.0f + t * 3.0f + static_cast<float>(y) * 0.37f) * 0.5f + 0.5f;
-            const auto intensity = std::clamp((glow - distance) * 2.6f + pulse * 0.16f, 0.0f, 1.0f);
+            const auto widthSparkle = std::sin(phase * 13.0f - t * 4.0f + static_cast<float>(y) * 0.51f) *
+                                          0.5f +
+                                      0.5f;
+            const auto intensity = std::clamp((glow - distance) * 2.6f + pulse * 0.16f +
+                                                  widthSparkle * width * 0.18f,
+                                              0.0f, 1.0f);
             if (intensity <= 0.05f)
                 continue;
 
