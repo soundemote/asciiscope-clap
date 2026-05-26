@@ -141,6 +141,21 @@ void drawCorrelationMeter(juce::Graphics &g, juce::Rectangle<float> bounds, floa
     g.drawText("C", bounds.reduced(4.0f, 0.0f), juce::Justification::centredLeft, false);
 }
 
+void drawTerminalTexture(juce::Graphics &g, juce::Rectangle<float> scope, int frame)
+{
+    const auto shimmer = std::sin(static_cast<float>(frame) * 0.11f) * 0.5f + 0.5f;
+    g.setColour(juce::Colour(0xff000000).withAlpha(0.10f + shimmer * 0.025f));
+    for (auto y = scope.getY() + 3.0f; y < scope.getBottom(); y += 4.0f)
+        g.fillRect(juce::Rectangle<float>(scope.getX() + 1.0f, y, scope.getWidth() - 2.0f, 1.0f));
+
+    g.setColour(juce::Colour(0xff5efcff).withAlpha(0.025f));
+    for (auto x = scope.getX() + 5.0f; x < scope.getRight(); x += 16.0f)
+        g.fillRect(juce::Rectangle<float>(x, scope.getY() + 1.0f, 1.0f, scope.getHeight() - 2.0f));
+
+    g.setColour(juce::Colour(0xff000000).withAlpha(0.20f));
+    g.drawRoundedRectangle(scope.reduced(3.0f), 4.0f, 6.0f);
+}
+
 char glyphFor(float intensity)
 {
     const auto glyphIndex = std::clamp(static_cast<int>(intensity * 9.0f), 0, 9);
@@ -622,6 +637,7 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     auto visualFrame = buildVisualFrame(cols, rows, visualAspect);
     applyPhosphorMemory(visualFrame);
     drawVisualFrame(g, scope, visualFrame);
+    drawTerminalTexture(g, scope, frame);
     drawReadouts(g, scope, visualFrame);
 }
 } // namespace baconpaul::sidequest_ns::ui
