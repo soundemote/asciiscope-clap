@@ -192,6 +192,7 @@ struct Engine
     int beginEndParamGestureCount{0};
 
     double sampleRate{1}, sampleRateInv{1};
+    uint64_t processedSampleCount{0};
     void setSampleRate(double sampleRate);
 
     template <bool multiOut> void processInternal(const clap_output_events_t *);

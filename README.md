@@ -37,6 +37,7 @@ This repo is still intentionally close to the startingpoint architecture.
 done  : visible product/plugin identity rename to Asciiscope CLAP
 done  : tiny JUCE visual component with demo/VU-derived motion
 done  : audio-to-editor visual snapshot boundary
+done  : snapshot timing metadata for sample-aware visual rendering
 done  : rolling UI-side waveform history for block snapshots
 done  : simple Scope Mode and Palette plugin parameters
 done  : Trace Gain parameter for pushing quiet input into visible motion

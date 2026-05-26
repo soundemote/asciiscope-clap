@@ -32,6 +32,8 @@ struct AsciiscopeAudioSnapshot
     std::array<float, maxSamples> right{};
     uint32_t sampleCount{0};
     uint64_t frameIndex{0};
+    uint64_t blockStartSample{0};
+    float sampleRate{0.0f};
     float leftPeak{0.0f};
     float rightPeak{0.0f};
     float leftRms{0.0f};
@@ -42,7 +44,8 @@ struct AsciiscopeAudioSnapshot
 
 struct AsciiscopeAudioSnapshotBuffer
 {
-    void publish(const float *left, const float *right, uint32_t sampleCount)
+    void publish(const float *left, const float *right, uint32_t sampleCount, double sampleRate,
+                 uint64_t blockStartSample)
     {
         if (!mutex.try_lock())
             return;
@@ -50,6 +53,8 @@ struct AsciiscopeAudioSnapshotBuffer
 
         latest = {};
         latest.frameIndex = ++frameCounter;
+        latest.blockStartSample = blockStartSample;
+        latest.sampleRate = static_cast<float>(sampleRate);
         latest.sampleCount = std::min(sampleCount, AsciiscopeAudioSnapshot::maxSamples);
 
         float leftSquares{0.0f};

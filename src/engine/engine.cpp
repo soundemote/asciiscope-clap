@@ -41,6 +41,7 @@ void Engine::setSampleRate(double sr)
 {
     sampleRate = sr;
     sampleRateInv = 1.0 / sr;
+    processedSampleCount = 0;
     for (auto &[i, p] : patch.paramMap)
     {
         p->lag.setRateInMilliseconds(1000.0 * 64.0 / 48000.0, sampleRate, 1.0 / blockSize);
@@ -122,9 +123,12 @@ void Engine::process(const clap_output_events_t *outq)
         assert(!v->next && !v->prior);
     }
 
+    const auto blockStartSample = processedSampleCount;
+    processedSampleCount += blockSize;
+
     if (isEditorAttached)
     {
-        visualSnapshots.publish(output[0], output[1], blockSize);
+        visualSnapshots.publish(output[0], output[1], blockSize, sampleRate, blockStartSample);
 
         for (int i = 0; i < blockSize; ++i)
         {

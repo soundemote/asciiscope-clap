@@ -465,6 +465,9 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         const auto inputState = displayRms < 0.003f && displayTransient < 0.01f ? "quiet" : "signal";
         frameData.feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
                          " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
+                         " // sample " +
+                         juce::String(static_cast<double>(snapshot.blockStartSample), 0) +
+                         " @ " + juce::String(snapshot.sampleRate * 0.001f, 1) + "k" +
                          " // " + feedState + " age " + juce::String(age) +
                          " // " + inputState +
                          " // rms " + juce::String(displayRms, 3) +
