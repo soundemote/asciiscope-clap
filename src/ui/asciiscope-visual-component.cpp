@@ -379,36 +379,42 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
 
 void AsciiscopeVisualComponent::applyPhosphorMemory(AsciiscopeVisualFrame &frameData)
 {
+    const auto currentTraceMode = frameData.circleDiagnostic ? 3 : scopeMode;
+    if (currentTraceMode != traceMemoryMode)
+    {
+        phosphorTraceGlyphs.clear();
+        traceMemoryMode = currentTraceMode;
+    }
+
+    const auto traceDecay = frameData.circleDiagnostic ? 0.91f : 0.72f;
+    for (auto &traceGlyph : phosphorTraceGlyphs)
+    {
+        traceGlyph.intensity *= traceDecay;
+        traceGlyph.glyph = glyphFor(traceGlyph.intensity);
+    }
+
+    phosphorTraceGlyphs.erase(std::remove_if(phosphorTraceGlyphs.begin(),
+                                             phosphorTraceGlyphs.end(),
+                                             [](const auto &traceGlyph)
+                                             { return traceGlyph.intensity <= 0.04f; }),
+                              phosphorTraceGlyphs.end());
+
+    phosphorTraceGlyphs.insert(phosphorTraceGlyphs.end(),
+                               frameData.traceGlyphs.begin(), frameData.traceGlyphs.end());
+
+    const auto maxTraceGlyphs = frameData.circleDiagnostic ? 220U : 520U;
+    if (phosphorTraceGlyphs.size() > maxTraceGlyphs)
+    {
+        phosphorTraceGlyphs.erase(phosphorTraceGlyphs.begin(),
+                                  phosphorTraceGlyphs.end() - maxTraceGlyphs);
+    }
+    frameData.traceGlyphs = phosphorTraceGlyphs;
+
     if (frameData.circleDiagnostic)
     {
         phosphorFrame.reset(0, 0);
-        for (auto &traceGlyph : phosphorTraceGlyphs)
-        {
-            traceGlyph.intensity *= 0.91f;
-            traceGlyph.glyph = glyphFor(traceGlyph.intensity);
-        }
-
-        phosphorTraceGlyphs.erase(std::remove_if(phosphorTraceGlyphs.begin(),
-                                                 phosphorTraceGlyphs.end(),
-                                                 [](const auto &traceGlyph)
-                                                 { return traceGlyph.intensity <= 0.04f; }),
-                                  phosphorTraceGlyphs.end());
-
-        phosphorTraceGlyphs.insert(phosphorTraceGlyphs.end(),
-                                   frameData.traceGlyphs.begin(), frameData.traceGlyphs.end());
-
-        constexpr auto maxCircleTrailGlyphs = 220U;
-        if (phosphorTraceGlyphs.size() > maxCircleTrailGlyphs)
-        {
-            phosphorTraceGlyphs.erase(phosphorTraceGlyphs.begin(),
-                                      phosphorTraceGlyphs.end() - maxCircleTrailGlyphs);
-        }
-
-        frameData.traceGlyphs = phosphorTraceGlyphs;
         return;
     }
-
-    phosphorTraceGlyphs.clear();
 
     if (phosphorFrame.cols != frameData.cols || phosphorFrame.rows != frameData.rows)
         phosphorFrame.reset(frameData.cols, frameData.rows);
