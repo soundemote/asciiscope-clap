@@ -135,6 +135,18 @@ void writeCell(AsciiscopeVisualFrame &frameData, int x, int y, float intensity, 
     cell.palette = palette;
 }
 
+void addTraceGlyph(AsciiscopeVisualFrame &frameData, float x, float y, char glyph,
+                   float intensity, int palette)
+{
+    frameData.traceGlyphs.push_back({
+        glyph,
+        std::clamp(x, 0.0f, 1.0f),
+        std::clamp(y, 0.0f, 1.0f),
+        std::clamp(intensity, 0.0f, 1.0f),
+        palette,
+    });
+}
+
 void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequencyHz,
                     int palette, float visualAspect)
 {
@@ -154,13 +166,9 @@ void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequency
     {
         const auto phase = t - static_cast<float>(i) * 0.055f;
         const auto intensity = i == 0 ? 0.98f : 0.74f - static_cast<float>(i) * 0.16f;
-        frameData.traceGlyphs.push_back({
-            i == 0 ? '@' : '+',
-            0.5f + std::cos(phase) * radiusX,
-            0.5f + std::sin(phase) * radiusY,
-            intensity,
-            palette,
-        });
+        addTraceGlyph(frameData, 0.5f + std::cos(phase) * radiusX,
+                      0.5f + std::sin(phase) * radiusY, i == 0 ? '@' : '+',
+                      intensity, palette);
     }
 }
 } // namespace
@@ -274,6 +282,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
     const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(displayCorrelation), 0.0f, 1.0f)
                                    : 0.0f;
     const auto transient = hasSnapshot ? displayTransient : 0.0f;
+    frameData.traceGlyphs.reserve(static_cast<std::size_t>(cols * (scopeMode == 1 ? 2 : 1)));
 
     for (int x = 0; x < cols; ++x)
     {
@@ -307,6 +316,9 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
             const auto bin = std::clamp(folded * 0.95f + displayRms * 1.45f + modulated +
                                             transient * 0.22f,
                                         0.0f, 1.0f);
+            const auto xPos = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
+            addTraceGlyph(frameData, xPos, 1.0f - bin, bin > 0.72f ? '@' : '*',
+                          0.70f + bin * 0.26f, palette);
 
             for (int y = 0; y < rows; ++y)
             {
@@ -332,6 +344,16 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         const auto mirrorA = 0.5f + std::abs(waveA) * 0.78f + waveB * 0.22f;
         const auto mirrorB = 0.5f - std::abs(waveA) * 0.78f - waveB * 0.22f;
         const auto glow = std::clamp(0.10f + energy * 0.55f + transient * 0.18f, 0.0f, 0.82f);
+        const auto xPos = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
+        if (scopeMode == 1)
+        {
+            addTraceGlyph(frameData, xPos, mirrorA, '+', 0.78f + energy * 0.18f, palette);
+            addTraceGlyph(frameData, xPos, mirrorB, '+', 0.78f + energy * 0.18f, palette);
+        }
+        else
+        {
+            addTraceGlyph(frameData, xPos, centre, '@', 0.82f + energy * 0.14f, palette);
+        }
 
         for (int y = 0; y < rows; ++y)
         {

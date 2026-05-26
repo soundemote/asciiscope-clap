@@ -54,6 +54,7 @@ done  : JUCE Graphics renderer for the visual frame
 done  : distinct Wave, Mirror, and Spectral frame-building paths
 done  : phosphor-style glyph memory for smoother JUCE frame trails
 done  : moving sin/cos circle diagnostic with persistent ASCII trail
+done  : bright live trace glyph overlay for Wave, Mirror, and Spectral modes
 kept  : existing engine/editor/classes/namespace shape
 next  : plugin-host visual testing and denser trace experiments
 later : optional JUCE OpenGL renderer behind the same visual frame
