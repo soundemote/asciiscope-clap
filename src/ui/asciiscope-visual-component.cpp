@@ -115,6 +115,32 @@ void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level,
     g.drawText(label, bounds.reduced(4.0f, 0.0f), juce::Justification::centredLeft, false);
 }
 
+void drawCorrelationMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float correlation,
+                          int palette)
+{
+    const auto corr = std::clamp(correlation, -1.0f, 1.0f);
+    const auto width = std::clamp(1.0f - std::abs(corr), 0.0f, 1.0f);
+    g.setColour(juce::Colour(0xff07101c).withAlpha(0.82f));
+    g.fillRect(bounds);
+    g.setColour(juce::Colour(0xff18304d).withAlpha(0.78f));
+    g.drawRect(bounds, 1.0f);
+
+    const auto centreX = bounds.getCentreX();
+    const auto markerX = juce::jmap(corr, -1.0f, 1.0f, bounds.getX() + 2.0f, bounds.getRight() - 2.0f);
+    g.setColour(phosphorFor(0.24f + width * 0.44f, palette).withAlpha(0.46f));
+    g.fillRect(bounds.reduced(1.0f).withWidth(bounds.getWidth() * width).withCentre({centreX, bounds.getCentreY()}));
+    g.setColour(juce::Colour(0xffd7faff).withAlpha(0.30f));
+    g.drawVerticalLine(static_cast<int>(centreX), bounds.getY() + 1.0f, bounds.getBottom() - 1.0f);
+    g.setColour(corr < -0.10f ? juce::Colour(0xffff4a3d).withAlpha(0.85f)
+                              : phosphorFor(0.70f, palette).withAlpha(0.90f));
+    g.fillRect(juce::Rectangle<float>(markerX - 1.5f, bounds.getY() + 1.0f, 3.0f,
+                                      bounds.getHeight() - 2.0f));
+
+    g.setColour(juce::Colour(0xffd7faff).withAlpha(0.68f));
+    g.setFont(juce::FontOptions(8.0f, juce::Font::plain));
+    g.drawText("C", bounds.reduced(4.0f, 0.0f), juce::Justification::centredLeft, false);
+}
+
 char glyphFor(float intensity)
 {
     const auto glyphIndex = std::clamp(static_cast<int>(intensity * 9.0f), 0, 9);
@@ -552,6 +578,8 @@ void AsciiscopeVisualComponent::drawReadouts(juce::Graphics &g, juce::Rectangle<
     drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, phosphorFor(0.62f, palette), "L");
     meterArea.removeFromTop(3.0f);
     drawMeter(g, meterArea.removeFromTop(8.0f), displayRightLevel, phosphorFor(0.48f, palette), "R");
+    drawCorrelationMeter(g, scope.reduced(7.0f).translated(0.0f, 23.0f).withHeight(9.0f).withWidth(118.0f),
+                         displayCorrelation, palette);
 
     if (frameData.feed.isNotEmpty())
     {
