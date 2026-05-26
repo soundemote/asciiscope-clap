@@ -100,6 +100,7 @@ struct AsciiscopeVisualComponent : juce::Component
     std::array<float, historySize> leftHistory{};
     std::array<float, historySize> rightHistory{};
     AsciiscopeVisualFrame phosphorFrame;
+    std::vector<AsciiscopeTraceGlyph> phosphorTraceGlyphs;
     uint32_t historyWrite{0};
     uint32_t historyCount{0};
     int latestSnapshotFrame{0};

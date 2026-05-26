@@ -139,7 +139,7 @@ void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequency
                     int palette, float visualAspect)
 {
     frameData.circleDiagnostic = true;
-    frameData.traceGlyphs.reserve(96);
+    frameData.traceGlyphs.reserve(3);
 
     const auto aspect = std::max(0.05f, visualAspect);
     auto radiusX = 0.42f;
@@ -150,15 +150,15 @@ void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequency
         radiusY /= aspect;
 
     const auto t = static_cast<float>(frame) * frequencyHz * 0.05235988f;
-    for (int i = 0; i < 96; ++i)
+    for (int i = 0; i < 3; ++i)
     {
-        const auto phase = static_cast<float>(i) / 96.0f * juce::MathConstants<float>::twoPi + t;
-        const auto hot = i % 12 == 0;
+        const auto phase = t - static_cast<float>(i) * 0.055f;
+        const auto intensity = i == 0 ? 0.98f : 0.74f - static_cast<float>(i) * 0.16f;
         frameData.traceGlyphs.push_back({
-            hot ? 'O' : '.',
+            i == 0 ? '@' : '+',
             0.5f + std::cos(phase) * radiusX,
             0.5f + std::sin(phase) * radiusY,
-            hot ? 0.92f : 0.58f,
+            intensity,
             palette,
         });
     }
@@ -360,8 +360,33 @@ void AsciiscopeVisualComponent::applyPhosphorMemory(AsciiscopeVisualFrame &frame
     if (frameData.circleDiagnostic)
     {
         phosphorFrame.reset(0, 0);
+        for (auto &traceGlyph : phosphorTraceGlyphs)
+        {
+            traceGlyph.intensity *= 0.91f;
+            traceGlyph.glyph = glyphFor(traceGlyph.intensity);
+        }
+
+        phosphorTraceGlyphs.erase(std::remove_if(phosphorTraceGlyphs.begin(),
+                                                 phosphorTraceGlyphs.end(),
+                                                 [](const auto &traceGlyph)
+                                                 { return traceGlyph.intensity <= 0.04f; }),
+                                  phosphorTraceGlyphs.end());
+
+        phosphorTraceGlyphs.insert(phosphorTraceGlyphs.end(),
+                                   frameData.traceGlyphs.begin(), frameData.traceGlyphs.end());
+
+        constexpr auto maxCircleTrailGlyphs = 220U;
+        if (phosphorTraceGlyphs.size() > maxCircleTrailGlyphs)
+        {
+            phosphorTraceGlyphs.erase(phosphorTraceGlyphs.begin(),
+                                      phosphorTraceGlyphs.end() - maxCircleTrailGlyphs);
+        }
+
+        frameData.traceGlyphs = phosphorTraceGlyphs;
         return;
     }
+
+    phosphorTraceGlyphs.clear();
 
     if (phosphorFrame.cols != frameData.cols || phosphorFrame.rows != frameData.rows)
         phosphorFrame.reset(frameData.cols, frameData.rows);
