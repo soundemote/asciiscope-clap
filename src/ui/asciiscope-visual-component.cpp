@@ -95,18 +95,50 @@ juce::Colour phosphorFor(float energy, int palette)
     }
 }
 
-float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
-                  uint32_t write, uint32_t count, float position)
+float readHistorySample(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
+                        uint32_t write, uint32_t count, int sampleOffset)
 {
     if (count == 0)
         return 0.0f;
 
-    const auto clampedPosition = std::clamp(position, 0.0f, 1.0f);
-    const auto newestDistance = static_cast<uint32_t>((1.0f - clampedPosition) *
-                                                      static_cast<float>(count - 1));
-    const auto index = (write + AsciiscopeVisualComponent::historySize - 1U - newestDistance) %
-                       AsciiscopeVisualComponent::historySize;
+    const auto clampedOffset =
+        static_cast<uint32_t>(std::clamp(sampleOffset, 0, static_cast<int>(count) - 1));
+    const auto oldest = (write + AsciiscopeVisualComponent::historySize - count) %
+                        AsciiscopeVisualComponent::historySize;
+    const auto index = (oldest + clampedOffset) % AsciiscopeVisualComponent::historySize;
     return history[index];
+}
+
+float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
+                  uint32_t write, uint32_t count, float position, int interpolationMode)
+{
+    if (count == 0)
+        return 0.0f;
+
+    if (count == 1)
+        return readHistorySample(history, write, count, 0);
+
+    const auto clampedPosition = std::clamp(position, 0.0f, 1.0f);
+    const auto samplePosition = clampedPosition * static_cast<float>(count - 1);
+    if (interpolationMode <= 0)
+        return readHistorySample(history, write, count,
+                                 static_cast<int>(std::round(samplePosition)));
+
+    const auto i1 = static_cast<int>(std::floor(samplePosition));
+    const auto amount = samplePosition - static_cast<float>(i1);
+    const auto y1 = readHistorySample(history, write, count, i1);
+    const auto y2 = readHistorySample(history, write, count, i1 + 1);
+
+    if (interpolationMode == 1)
+        return y1 + (y2 - y1) * amount;
+
+    const auto y0 = readHistorySample(history, write, count, i1 - 1);
+    const auto y3 = readHistorySample(history, write, count, i1 + 2);
+    const auto t2 = amount * amount;
+    const auto t3 = t2 * amount;
+    return 0.5f * ((2.0f * y1) + (-y0 + y2) * amount +
+                   (2.0f * y0 - 5.0f * y1 + 4.0f * y2 - y3) * t2 +
+                   (-y0 + 3.0f * y1 - 3.0f * y2 + y3) * t3);
 }
 
 void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level, float peakHold,
@@ -513,9 +545,12 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         {
             const auto historyPosition =
                 static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
-            const auto left = readHistory(leftHistory, historyWrite, historyCount, historyPosition);
-            const auto right = readHistory(rightHistory, historyWrite, historyCount, historyPosition);
-            mono = readHistory(monoHistory, historyWrite, historyCount, historyPosition);
+            const auto left = readHistory(leftHistory, historyWrite, historyCount,
+                                          historyPosition, traceInterpolationMode);
+            const auto right = readHistory(rightHistory, historyWrite, historyCount,
+                                           historyPosition, traceInterpolationMode);
+            mono = readHistory(monoHistory, historyWrite, historyCount, historyPosition,
+                               traceInterpolationMode);
             sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
             stereoSpread = std::clamp((left - right) * (0.14f + width * 0.12f) * traceGain,
                                       -0.28f, 0.28f);
