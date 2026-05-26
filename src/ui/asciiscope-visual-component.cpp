@@ -213,14 +213,18 @@ void AsciiscopeVisualComponent::resized() {}
 void AsciiscopeVisualComponent::tick()
 {
     ++frame;
-    const auto leftAlpha = leftLevel > displayLeftLevel ? 0.42f : 0.10f;
-    const auto rightAlpha = rightLevel > displayRightLevel ? 0.42f : 0.10f;
-    const auto rmsTarget = hasSnapshot ? (snapshot.leftRms + snapshot.rightRms) * 0.5f : 0.0f;
-    const auto transientTarget = hasSnapshot ? snapshot.transientAmount : 0.0f;
-    const auto correlationTarget = hasSnapshot ? snapshot.stereoCorrelation : 0.0f;
+    const auto snapshotAge = hasSnapshot ? std::max(0, frame - latestSnapshotFrame) : 0;
+    const auto isStale = hasSnapshot && snapshotAge > 8;
+    const auto leftTarget = isStale ? 0.0f : leftLevel;
+    const auto rightTarget = isStale ? 0.0f : rightLevel;
+    const auto rmsTarget = hasSnapshot && !isStale ? (snapshot.leftRms + snapshot.rightRms) * 0.5f : 0.0f;
+    const auto transientTarget = hasSnapshot && !isStale ? snapshot.transientAmount : 0.0f;
+    const auto correlationTarget = hasSnapshot && !isStale ? snapshot.stereoCorrelation : 0.0f;
+    const auto leftAlpha = leftTarget > displayLeftLevel ? 0.42f : 0.10f;
+    const auto rightAlpha = rightTarget > displayRightLevel ? 0.42f : 0.10f;
     const auto transientAlpha = transientTarget > displayTransient ? 0.36f : 0.08f;
-    displayLeftLevel += (leftLevel - displayLeftLevel) * leftAlpha;
-    displayRightLevel += (rightLevel - displayRightLevel) * rightAlpha;
+    displayLeftLevel += (leftTarget - displayLeftLevel) * leftAlpha;
+    displayRightLevel += (rightTarget - displayRightLevel) * rightAlpha;
     displayRms += (rmsTarget - displayRms) * 0.18f;
     displayCorrelation += (correlationTarget - displayCorrelation) * 0.16f;
     displayTransient += (transientTarget - displayTransient) * transientAlpha;
