@@ -296,9 +296,11 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         const auto age = std::max(0, frame - latestSnapshotFrame);
         frameData.feedIsStale = age > 8;
         const auto feedState = frameData.feedIsStale ? "stale" : "live";
+        const auto inputState = displayRms < 0.003f && displayTransient < 0.01f ? "quiet" : "signal";
         frameData.feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
                          " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
                          " // " + feedState + " age " + juce::String(age) +
+                         " // " + inputState +
                          " // rms " + juce::String(displayRms, 3) +
                          " // corr " + juce::String(displayCorrelation, 2) +
                          " // crest " + juce::String(displayTransient, 2);
