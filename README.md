@@ -69,6 +69,17 @@ cmake --build build --config Release
 The project currently builds CLAP, VST3, AUv2 wrapper targets, and a standalone
 target through the existing startingpoint/clap-wrapper setup.
 
+Current Windows build artifacts:
+
+```text
+build\asciiscope-clap_assets\CLAP\Release\Asciiscope CLAP.clap
+build\asciiscope-clap_assets\VST3\Release\Asciiscope CLAP.vst3
+build\asciiscope-clap_assets\Standalone-asciiscope-clap_standalone\Release\Asciiscope CLAP.exe
+```
+
+The standalone is the fastest editor smoke test. The CLAP build is the main host
+target for live synth/signal testing.
+
 ## architecture notes
 
 Preserved for now:
