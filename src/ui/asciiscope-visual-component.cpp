@@ -121,6 +121,20 @@ char glyphFor(float intensity)
     return glyphRamp[glyphIndex];
 }
 
+void writeCell(AsciiscopeVisualFrame &frameData, int x, int y, float intensity, int palette)
+{
+    if (intensity <= 0.05f)
+        return;
+
+    auto &cell = frameData.cell(x, y);
+    if (intensity <= cell.intensity)
+        return;
+
+    cell.glyph = glyphFor(intensity);
+    cell.intensity = intensity;
+    cell.palette = palette;
+}
+
 void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequencyHz,
                     int palette, float visualAspect)
 {
@@ -268,12 +282,14 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         const auto t = static_cast<float>(frame) * 0.065f;
         auto sample = std::sin(phase * 2.0f + t) * (0.23f + displayLeftLevel * 0.25f);
         auto stereoSpread = std::sin(phase * 3.0f - t * 0.7f) * displayRightLevel * 0.12f;
+        auto mono = sample;
         if (hasSnapshot)
         {
             const auto historyPosition =
                 static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
             const auto left = readHistory(leftHistory, historyWrite, historyCount, historyPosition);
             const auto right = readHistory(rightHistory, historyWrite, historyCount, historyPosition);
+            mono = readHistory(monoHistory, historyWrite, historyCount, historyPosition);
             sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
             stereoSpread = std::clamp((left - right) * (0.14f + width * 0.12f) * traceGain,
                                       -0.28f, 0.28f);
@@ -283,23 +299,46 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
             sample = std::clamp(sample * traceGain, -0.48f, 0.48f);
         }
 
-        if (scopeMode == 1)
-            sample = std::abs(sample + stereoSpread) * 0.88f - 0.22f;
-        else if (scopeMode == 2)
-            sample = std::sin((sample + stereoSpread) * 5.0f + phase * 1.7f + t * 0.8f) *
-                     (0.18f + energy * 0.32f);
+        if (scopeMode == 2)
+        {
+            const auto folded = std::abs(mono * traceGain);
+            const auto modulated =
+                std::abs(std::sin(phase * 4.0f + t * 0.9f + folded * 7.0f)) * 0.22f;
+            const auto bin = std::clamp(folded * 0.95f + displayRms * 1.45f + modulated +
+                                            transient * 0.22f,
+                                        0.0f, 1.0f);
+
+            for (int y = 0; y < rows; ++y)
+            {
+                const auto row = static_cast<float>(y) / static_cast<float>(std::max(1, rows - 1));
+                const auto height = 1.0f - row;
+                const auto shimmer =
+                    std::sin(phase * 17.0f - t * 5.0f + static_cast<float>(y) * 0.61f) * 0.5f +
+                    0.5f;
+                const auto intensity =
+                    std::clamp((bin - height) * 2.9f + shimmer * (0.12f + width * 0.14f),
+                               0.0f, 1.0f);
+                writeCell(frameData, x, y, intensity, palette);
+            }
+
+            continue;
+        }
 
         const auto waveA = sample + stereoSpread;
         const auto waveB =
             std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
             (0.10f + displayRightLevel * 0.16f);
         const auto centre = 0.5f + waveA + waveB;
+        const auto mirrorA = 0.5f + std::abs(waveA) * 0.78f + waveB * 0.22f;
+        const auto mirrorB = 0.5f - std::abs(waveA) * 0.78f - waveB * 0.22f;
         const auto glow = std::clamp(0.10f + energy * 0.55f + transient * 0.18f, 0.0f, 0.82f);
 
         for (int y = 0; y < rows; ++y)
         {
             const auto row = static_cast<float>(y) / static_cast<float>(std::max(1, rows - 1));
-            const auto distance = std::abs(row - centre);
+            const auto distance = scopeMode == 1
+                                      ? std::min(std::abs(row - mirrorA), std::abs(row - mirrorB))
+                                      : std::abs(row - centre);
             const auto pulse =
                 std::sin(phase * 9.0f + t * 3.0f + static_cast<float>(y) * 0.37f) * 0.5f + 0.5f;
             const auto widthSparkle =
@@ -309,13 +348,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                 std::clamp((glow - distance) * 2.6f + pulse * 0.16f +
                                widthSparkle * width * 0.18f + pulse * transient * 0.14f,
                            0.0f, 1.0f);
-            if (intensity <= 0.05f)
-                continue;
-
-            auto &cell = frameData.cell(x, y);
-            cell.glyph = glyphFor(intensity);
-            cell.intensity = intensity;
-            cell.palette = palette;
+            writeCell(frameData, x, y, intensity, palette);
         }
     }
 

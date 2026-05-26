@@ -51,8 +51,9 @@ done  : smoothed L/R levels for steadier meters and motion
 done  : sin/cos circle diagnostic button with frequency control
 done  : neutral visual frame built from glyph cells, trace glyphs, and readouts
 done  : JUCE Graphics renderer for the visual frame
+done  : distinct Wave, Mirror, and Spectral frame-building paths
 kept  : existing engine/editor/classes/namespace shape
-next  : richer snapshot-fed modes
+next  : denser trace memory and plugin-host visual testing
 later : optional JUCE OpenGL renderer behind the same visual frame
 later : Asciiscope scene/render adapter
 ```
