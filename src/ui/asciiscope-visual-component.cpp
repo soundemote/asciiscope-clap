@@ -115,38 +115,39 @@ void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level,
     g.drawText(label, bounds.reduced(4.0f, 0.0f), juce::Justification::centredLeft, false);
 }
 
-void drawCircleDiagnostic(juce::Graphics &g, juce::Rectangle<float> scope,
-                          int frame, float frequencyHz, int palette)
+char glyphFor(float intensity)
 {
-    const auto square = scope.withSizeKeepingCentre(std::min(scope.getWidth(), scope.getHeight()),
-                                                    std::min(scope.getWidth(), scope.getHeight()))
-                            .reduced(12.0f);
-    const auto centre = square.getCentre();
-    const auto radius = square.getWidth() * 0.42f;
+    const auto glyphIndex = std::clamp(static_cast<int>(intensity * 9.0f), 0, 9);
+    return glyphRamp[glyphIndex];
+}
+
+void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequencyHz,
+                    int palette, float visualAspect)
+{
+    frameData.circleDiagnostic = true;
+    frameData.traceGlyphs.reserve(96);
+
+    const auto aspect = std::max(0.05f, visualAspect);
+    auto radiusX = 0.42f;
+    auto radiusY = 0.42f;
+    if (aspect < 1.0f)
+        radiusX *= aspect;
+    else
+        radiusY /= aspect;
+
     const auto t = static_cast<float>(frame) * frequencyHz * 0.05235988f;
-
-    g.setColour(juce::Colour(0xff18304d).withAlpha(0.55f));
-    g.drawRect(square, 1.0f);
-    g.drawHorizontalLine(static_cast<int>(centre.y), square.getX(), square.getRight());
-    g.drawVerticalLine(static_cast<int>(centre.x), square.getY(), square.getBottom());
-
-    g.setFont(juce::FontOptions(13.0f, juce::Font::plain));
     for (int i = 0; i < 96; ++i)
     {
         const auto phase = static_cast<float>(i) / 96.0f * juce::MathConstants<float>::twoPi + t;
-        const auto x = centre.x + std::cos(phase) * radius;
-        const auto y = centre.y + std::sin(phase) * radius;
         const auto hot = i % 12 == 0;
-        g.setColour(phosphorFor(hot ? 0.92f : 0.58f, palette).withAlpha(hot ? 0.98f : 0.78f));
-        g.drawText(hot ? "O" : ".",
-                   juce::Rectangle<float>(x - 6.0f, y - 6.0f, 12.0f, 12.0f),
-                   juce::Justification::centred, false);
+        frameData.traceGlyphs.push_back({
+            hot ? 'O' : '.',
+            0.5f + std::cos(phase) * radiusX,
+            0.5f + std::sin(phase) * radiusY,
+            hot ? 0.92f : 0.58f,
+            palette,
+        });
     }
-
-    g.setColour(phosphorFor(0.74f, palette).withAlpha(0.88f));
-    g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
-    g.drawText(juce::String("sin/cos circle // ") + juce::String(frequencyHz, 2) + " hz",
-               square.reduced(7.0f), juce::Justification::bottomLeft, false);
 }
 } // namespace
 
@@ -215,6 +216,187 @@ void AsciiscopeVisualComponent::setCircleDiagnostic(bool active)
     circleDiagnostic = active;
 }
 
+AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int rows,
+                                                                  float visualAspect) const
+{
+    AsciiscopeVisualFrame frameData;
+    frameData.reset(cols, rows);
+
+    frameData.title = juce::String("ASCIISCOPE CLAP // ") +
+                      (circleDiagnostic ? "circle diagnostic" : modeName(scopeMode)) +
+                      (hasSnapshot ? " snapshot feed" : " demo feed");
+
+    frameData.readout = juce::String("mode ") + juce::String(scopeMode) + " " +
+                        modeName(scopeMode) + " // palette " + juce::String(palette) + " " +
+                        paletteName(palette) + " // gain " + juce::String(traceGain, 2) +
+                        (circleDiagnostic
+                             ? juce::String(" // circle ") + juce::String(circleFrequencyHz, 2) +
+                                   "hz"
+                             : juce::String()) +
+                        " // L " + juce::String(displayLeftLevel, 2) + " R " +
+                        juce::String(displayRightLevel, 2);
+
+    if (hasSnapshot)
+    {
+        const auto age = std::max(0, frame - latestSnapshotFrame);
+        frameData.feedIsStale = age > 8;
+        const auto feedState = frameData.feedIsStale ? "stale" : "live";
+        frameData.feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
+                         " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
+                         " // " + feedState + " age " + juce::String(age) +
+                         " // rms " + juce::String(displayRms, 3) +
+                         " // corr " + juce::String(displayCorrelation, 2) +
+                         " // crest " + juce::String(displayTransient, 2);
+    }
+
+    if (circleDiagnostic)
+    {
+        addCircleTrace(frameData, frame, circleFrequencyHz, palette, visualAspect);
+        return frameData;
+    }
+
+    const auto energy =
+        std::clamp(0.18f + displayLeftLevel * 0.62f + displayRightLevel * 0.42f, 0.0f, 1.0f);
+    const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(displayCorrelation), 0.0f, 1.0f)
+                                   : 0.0f;
+    const auto transient = hasSnapshot ? displayTransient : 0.0f;
+
+    for (int x = 0; x < cols; ++x)
+    {
+        const auto phase =
+            (static_cast<float>(x) / static_cast<float>(cols)) * juce::MathConstants<float>::twoPi;
+        const auto t = static_cast<float>(frame) * 0.065f;
+        auto sample = std::sin(phase * 2.0f + t) * (0.23f + displayLeftLevel * 0.25f);
+        auto stereoSpread = std::sin(phase * 3.0f - t * 0.7f) * displayRightLevel * 0.12f;
+        if (hasSnapshot)
+        {
+            const auto historyPosition =
+                static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
+            const auto left = readHistory(leftHistory, historyWrite, historyCount, historyPosition);
+            const auto right = readHistory(rightHistory, historyWrite, historyCount, historyPosition);
+            sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
+            stereoSpread = std::clamp((left - right) * (0.14f + width * 0.12f) * traceGain,
+                                      -0.28f, 0.28f);
+        }
+        else
+        {
+            sample = std::clamp(sample * traceGain, -0.48f, 0.48f);
+        }
+
+        if (scopeMode == 1)
+            sample = std::abs(sample + stereoSpread) * 0.88f - 0.22f;
+        else if (scopeMode == 2)
+            sample = std::sin((sample + stereoSpread) * 5.0f + phase * 1.7f + t * 0.8f) *
+                     (0.18f + energy * 0.32f);
+
+        const auto waveA = sample + stereoSpread;
+        const auto waveB =
+            std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
+            (0.10f + displayRightLevel * 0.16f);
+        const auto centre = 0.5f + waveA + waveB;
+        const auto glow = std::clamp(0.10f + energy * 0.55f + transient * 0.18f, 0.0f, 0.82f);
+
+        for (int y = 0; y < rows; ++y)
+        {
+            const auto row = static_cast<float>(y) / static_cast<float>(std::max(1, rows - 1));
+            const auto distance = std::abs(row - centre);
+            const auto pulse =
+                std::sin(phase * 9.0f + t * 3.0f + static_cast<float>(y) * 0.37f) * 0.5f + 0.5f;
+            const auto widthSparkle =
+                std::sin(phase * 13.0f - t * 4.0f + static_cast<float>(y) * 0.51f) * 0.5f +
+                0.5f;
+            const auto intensity =
+                std::clamp((glow - distance) * 2.6f + pulse * 0.16f +
+                               widthSparkle * width * 0.18f + pulse * transient * 0.14f,
+                           0.0f, 1.0f);
+            if (intensity <= 0.05f)
+                continue;
+
+            auto &cell = frameData.cell(x, y);
+            cell.glyph = glyphFor(intensity);
+            cell.intensity = intensity;
+            cell.palette = palette;
+        }
+    }
+
+    return frameData;
+}
+
+void AsciiscopeVisualComponent::drawVisualFrame(juce::Graphics &g, juce::Rectangle<float> scope,
+                                                const AsciiscopeVisualFrame &frameData) const
+{
+    if (frameData.circleDiagnostic)
+    {
+        const auto square = scope.withSizeKeepingCentre(std::min(scope.getWidth(), scope.getHeight()),
+                                                        std::min(scope.getWidth(), scope.getHeight()))
+                                .reduced(12.0f);
+        const auto centre = square.getCentre();
+        g.setColour(juce::Colour(0xff18304d).withAlpha(0.55f));
+        g.drawRect(square, 1.0f);
+        g.drawHorizontalLine(static_cast<int>(centre.y), square.getX(), square.getRight());
+        g.drawVerticalLine(static_cast<int>(centre.x), square.getY(), square.getBottom());
+    }
+
+    const auto cols = std::max(1, frameData.cols);
+    const auto rows = std::max(1, frameData.rows);
+    const auto cellW = scope.getWidth() / static_cast<float>(cols);
+    const auto cellH = scope.getHeight() / static_cast<float>(rows);
+
+    g.setFont(juce::FontOptions(std::max(8.0f, cellH + 1.5f), juce::Font::plain));
+    for (int y = 0; y < rows; ++y)
+    {
+        for (int x = 0; x < cols; ++x)
+        {
+            const auto &cell = frameData.cells[static_cast<std::size_t>(y * cols + x)];
+            if (cell.intensity <= 0.05f)
+                continue;
+
+            const char text[] = {cell.glyph, 0};
+            g.setColour(phosphorFor(cell.intensity, cell.palette));
+            g.drawText(text,
+                       juce::Rectangle<float>(scope.getX() + static_cast<float>(x) * cellW,
+                                              scope.getY() + static_cast<float>(y) * cellH,
+                                              cellW + 1.0f, cellH + 1.0f),
+                       juce::Justification::centred, false);
+        }
+    }
+
+    g.setFont(juce::FontOptions(13.0f, juce::Font::plain));
+    for (const auto &traceGlyph : frameData.traceGlyphs)
+    {
+        const char text[] = {traceGlyph.glyph, 0};
+        const auto x = scope.getX() + std::clamp(traceGlyph.x, 0.0f, 1.0f) * scope.getWidth();
+        const auto y = scope.getY() + std::clamp(traceGlyph.y, 0.0f, 1.0f) * scope.getHeight();
+        g.setColour(phosphorFor(traceGlyph.intensity, traceGlyph.palette)
+                        .withAlpha(traceGlyph.intensity > 0.8f ? 0.98f : 0.78f));
+        g.drawText(text, juce::Rectangle<float>(x - 6.0f, y - 6.0f, 12.0f, 12.0f),
+                   juce::Justification::centred, false);
+    }
+}
+
+void AsciiscopeVisualComponent::drawReadouts(juce::Graphics &g, juce::Rectangle<float> scope,
+                                             const AsciiscopeVisualFrame &frameData) const
+{
+    g.setColour(juce::Colour(0xff5efcff).withAlpha(0.85f));
+    g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
+    g.drawText(frameData.title, scope.reduced(7.0f), juce::Justification::topLeft, false);
+
+    g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
+    g.drawText(frameData.readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
+
+    auto meterArea = scope.reduced(7.0f).withHeight(19.0f).withWidth(118.0f);
+    drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, phosphorFor(0.62f, palette), "L");
+    meterArea.removeFromTop(3.0f);
+    drawMeter(g, meterArea.removeFromTop(8.0f), displayRightLevel, phosphorFor(0.48f, palette), "R");
+
+    if (frameData.feed.isNotEmpty())
+    {
+        g.setColour((frameData.feedIsStale ? juce::Colour(0xffff4a3d) : phosphorFor(0.50f, palette))
+                        .withAlpha(0.72f));
+        g.drawText(frameData.feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
+    }
+}
+
 void AsciiscopeVisualComponent::paint(juce::Graphics &g)
 {
     const auto bounds = getLocalBounds().toFloat();
@@ -236,112 +418,11 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
         g.drawHorizontalLine(static_cast<int>(y), scope.getX(), scope.getRight());
     }
 
-    const auto energy = std::clamp(0.18f + displayLeftLevel * 0.62f + displayRightLevel * 0.42f, 0.0f, 1.0f);
-    const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(displayCorrelation), 0.0f, 1.0f) : 0.0f;
-    const auto transient = hasSnapshot ? displayTransient : 0.0f;
     const auto rows = std::max(8, static_cast<int>(scope.getHeight() / 11.0f));
     const auto cols = std::max(24, static_cast<int>(scope.getWidth() / 8.0f));
-    const auto cellW = scope.getWidth() / static_cast<float>(cols);
-    const auto cellH = scope.getHeight() / static_cast<float>(rows);
-
-    if (circleDiagnostic)
-    {
-        drawCircleDiagnostic(g, scope, frame, circleFrequencyHz, palette);
-    }
-    else
-    {
-        g.setFont(juce::FontOptions(std::max(8.0f, cellH + 1.5f), juce::Font::plain));
-        for (int x = 0; x < cols; ++x)
-        {
-            const auto phase = (static_cast<float>(x) / static_cast<float>(cols)) * juce::MathConstants<float>::twoPi;
-            const auto t = static_cast<float>(frame) * 0.065f;
-            auto sample = std::sin(phase * 2.0f + t) * (0.23f + displayLeftLevel * 0.25f);
-            auto stereoSpread = std::sin(phase * 3.0f - t * 0.7f) * displayRightLevel * 0.12f;
-            if (hasSnapshot)
-            {
-                const auto historyPosition = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
-                const auto left = readHistory(leftHistory, historyWrite, historyCount, historyPosition);
-                const auto right = readHistory(rightHistory, historyWrite, historyCount, historyPosition);
-                sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
-                stereoSpread = std::clamp((left - right) * (0.14f + width * 0.12f) * traceGain, -0.28f, 0.28f);
-            }
-            else
-            {
-                sample = std::clamp(sample * traceGain, -0.48f, 0.48f);
-            }
-
-            if (scopeMode == 1)
-                sample = std::abs(sample + stereoSpread) * 0.88f - 0.22f;
-            else if (scopeMode == 2)
-                sample = std::sin((sample + stereoSpread) * 5.0f + phase * 1.7f + t * 0.8f) *
-                         (0.18f + energy * 0.32f);
-
-            const auto waveA = sample + stereoSpread;
-            const auto waveB = std::sin(phase * (scopeMode == 2 ? 9.0f : 5.0f) - t * 1.7f) *
-                               (0.10f + displayRightLevel * 0.16f);
-            const auto centre = 0.5f + waveA + waveB;
-            const auto glow = std::clamp(0.10f + energy * 0.55f + transient * 0.18f, 0.0f, 0.82f);
-
-            for (int y = 0; y < rows; ++y)
-            {
-                const auto row = static_cast<float>(y) / static_cast<float>(std::max(1, rows - 1));
-                const auto distance = std::abs(row - centre);
-                const auto pulse = std::sin(phase * 9.0f + t * 3.0f + static_cast<float>(y) * 0.37f) * 0.5f + 0.5f;
-                const auto widthSparkle = std::sin(phase * 13.0f - t * 4.0f + static_cast<float>(y) * 0.51f) *
-                                              0.5f +
-                                          0.5f;
-                const auto intensity = std::clamp((glow - distance) * 2.6f + pulse * 0.16f +
-                                                      widthSparkle * width * 0.18f + pulse * transient * 0.14f,
-                                                  0.0f, 1.0f);
-                if (intensity <= 0.05f)
-                    continue;
-
-                const auto glyphIndex = std::clamp(static_cast<int>(intensity * 9.0f), 0, 9);
-                const char text[] = {glyphRamp[glyphIndex], 0};
-                g.setColour(phosphorFor(intensity, palette));
-                g.drawText(text,
-                           juce::Rectangle<float>(scope.getX() + static_cast<float>(x) * cellW,
-                                                  scope.getY() + static_cast<float>(y) * cellH,
-                                                  cellW + 1.0f, cellH + 1.0f),
-                           juce::Justification::centred, false);
-            }
-        }
-    }
-
-    g.setColour(juce::Colour(0xff5efcff).withAlpha(0.85f));
-    g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
-    g.drawText(juce::String("ASCIISCOPE CLAP // ") + (circleDiagnostic ? "circle diagnostic" : modeName(scopeMode)) +
-                   (hasSnapshot ? " snapshot feed" : " demo feed"),
-               scope.reduced(7.0f), juce::Justification::topLeft, false);
-
-    const auto readout = juce::String("mode ") + juce::String(scopeMode) + " " + modeName(scopeMode) +
-                         " // palette " + juce::String(palette) + " " + paletteName(palette) +
-                         " // gain " + juce::String(traceGain, 2) +
-                         (circleDiagnostic ? juce::String(" // circle ") + juce::String(circleFrequencyHz, 2) + "hz"
-                                           : juce::String()) +
-                         " // L " + juce::String(displayLeftLevel, 2) + " R " +
-                         juce::String(displayRightLevel, 2);
-    g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
-    g.drawText(readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
-
-    auto meterArea = scope.reduced(7.0f).withHeight(19.0f).withWidth(118.0f);
-    drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, phosphorFor(0.62f, palette), "L");
-    meterArea.removeFromTop(3.0f);
-    drawMeter(g, meterArea.removeFromTop(8.0f), displayRightLevel, phosphorFor(0.48f, palette), "R");
-
-    if (hasSnapshot)
-    {
-        const auto age = std::max(0, frame - latestSnapshotFrame);
-        const auto isStale = age > 8;
-        const auto feedState = isStale ? "stale" : "live";
-        const auto feed = juce::String("block ") + juce::String(snapshot.sampleCount) +
-                          " // frame " + juce::String(static_cast<double>(snapshot.frameIndex), 0) +
-                          " // " + feedState + " age " + juce::String(age) +
-                          " // rms " + juce::String(displayRms, 3) +
-                          " // corr " + juce::String(displayCorrelation, 2) +
-                          " // crest " + juce::String(displayTransient, 2);
-        g.setColour((isStale ? juce::Colour(0xffff4a3d) : phosphorFor(0.50f, palette)).withAlpha(0.72f));
-        g.drawText(feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
-    }
+    const auto visualAspect = scope.getHeight() / std::max(1.0f, scope.getWidth());
+    const auto visualFrame = buildVisualFrame(cols, rows, visualAspect);
+    drawVisualFrame(g, scope, visualFrame);
+    drawReadouts(g, scope, visualFrame);
 }
 } // namespace baconpaul::sidequest_ns::ui

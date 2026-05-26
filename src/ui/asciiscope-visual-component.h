@@ -17,6 +17,8 @@
 #define BACONPAUL_SIDEQUEST_UI_ASCIISCOPE_VISUAL_COMPONENT_H
 
 #include <array>
+#include <cstddef>
+#include <vector>
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -24,6 +26,53 @@
 
 namespace baconpaul::sidequest_ns::ui
 {
+struct AsciiscopeGlyphCell
+{
+    char glyph{' '};
+    float intensity{0.0f};
+    int palette{0};
+};
+
+struct AsciiscopeTraceGlyph
+{
+    char glyph{'.'};
+    float x{0.5f};
+    float y{0.5f};
+    float intensity{0.0f};
+    int palette{0};
+};
+
+struct AsciiscopeVisualFrame
+{
+    void reset(int newCols, int newRows)
+    {
+        cols = newCols;
+        rows = newRows;
+        cells.assign(static_cast<std::size_t>(cols * rows), {});
+        traceGlyphs.clear();
+        title = {};
+        readout = {};
+        feed = {};
+        feedIsStale = false;
+        circleDiagnostic = false;
+    }
+
+    AsciiscopeGlyphCell &cell(int x, int y)
+    {
+        return cells[static_cast<std::size_t>(y * cols + x)];
+    }
+
+    int cols{0};
+    int rows{0};
+    std::vector<AsciiscopeGlyphCell> cells;
+    std::vector<AsciiscopeTraceGlyph> traceGlyphs;
+    juce::String title;
+    juce::String readout;
+    juce::String feed;
+    bool feedIsStale{false};
+    bool circleDiagnostic{false};
+};
+
 struct AsciiscopeVisualComponent : juce::Component
 {
     AsciiscopeVisualComponent();
@@ -38,6 +87,12 @@ struct AsciiscopeVisualComponent : juce::Component
     void setCircleDiagnostic(bool active);
 
     static constexpr uint32_t historySize{512};
+
+    AsciiscopeVisualFrame buildVisualFrame(int cols, int rows, float visualAspect) const;
+    void drawVisualFrame(juce::Graphics &g, juce::Rectangle<float> scope,
+                         const AsciiscopeVisualFrame &frameData) const;
+    void drawReadouts(juce::Graphics &g, juce::Rectangle<float> scope,
+                      const AsciiscopeVisualFrame &frameData) const;
 
     AsciiscopeAudioSnapshot snapshot;
     std::array<float, historySize> monoHistory{};

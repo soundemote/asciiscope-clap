@@ -10,7 +10,7 @@ plugin identity : Asciiscope CLAP
 foundation      : baconpaul sidequest-startingpoint
 format path     : CLAP first, VST3/AUv2 wrappers from clap-wrapper
 visual goal     : dark colorful console-style signal art
-next step       : JUCE visual component fed by demo/VU-derived data
+next step       : richer snapshot-fed ASCII scenes inside the JUCE editor
 ```
 ![example.gif](https://github.com/soundemote/asciiscope/blob/main/example.gif)
 
@@ -49,8 +49,11 @@ done  : live/stale snapshot feed indicator
 done  : compact L/R meters inside the scope frame
 done  : smoothed L/R levels for steadier meters and motion
 done  : sin/cos circle diagnostic button with frequency control
+done  : neutral visual frame built from glyph cells, trace glyphs, and readouts
+done  : JUCE Graphics renderer for the visual frame
 kept  : existing engine/editor/classes/namespace shape
 next  : richer snapshot-fed modes
+later : optional JUCE OpenGL renderer behind the same visual frame
 later : Asciiscope scene/render adapter
 ```
 
@@ -94,7 +97,7 @@ Current extraction seams:
 signal enters        : Engine::process() captures output blocks
 state updates        : PluginEditor::idle() drains the latest snapshot
 drawing happens      : AsciiscopeVisualComponent::paint()
-reusable core        : snapshot shape, rolling history, visual mode math
+reusable core        : snapshot shape, rolling history, visual frame, visual mode math
 plugin/editor shell  : patch params, MainPanel ownership, JUCE repaint loop
 ```
 
@@ -104,11 +107,25 @@ Asciiscope concepts.
 `IVisualSurface` is still deferred. The current priority is learning what the
 JUCE editor needs from snapshot-fed drawing before shaping a shared surface API.
 
+OpenGL is also deferred. The plugin should remain usable with the default JUCE
+software renderer, then optionally attach a dedicated OpenGL renderer later for
+shader trails, dense particles, phosphor feedback, and future Syphon/Spout-style
+experiments. The console identity should stay glyph-first either way.
+
 ## future
 
 ```rust
 AsciiscopeVisualComponent
 // small JUCE component with the dark console look
+
+AsciiscopeVisualFrame
+// glyph cells, trace glyphs, and readouts generated before drawing
+
+JuceVisualFrameRenderer
+// current default draw path using juce::Graphics and monospaced glyphs
+
+OpenGLVisualFrameRenderer
+// optional later backend for texture glyphs, shader trails, and dense motion
 
 DemoVisualInput
 // non-audio first visual feed for proving editor rendering
