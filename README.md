@@ -10,6 +10,7 @@ plugin identity : Asciiscope CLAP
 foundation      : baconpaul sidequest-startingpoint
 format path     : CLAP first, VST3/AUv2 wrappers from clap-wrapper
 visual goal     : dark colorful console-style signal art
+render goal     : CPU-built sample-coherent glyph traces, GPU effects later
 next step       : richer snapshot-fed ASCII scenes inside the JUCE editor
 ```
 ![example.gif](https://github.com/soundemote/asciiscope/blob/main/example.gif)
@@ -71,7 +72,7 @@ done  : quiet/signal state in the snapshot feed readout
 done  : renderer readout confirms current JUCE glyph path
 kept  : existing engine/editor/classes/namespace shape
 next  : plugin-host visual testing and denser trace experiments
-later : optional JUCE OpenGL renderer behind the same visual frame
+later : optional GPU effects after the CPU glyph/trace renderer
 later : Asciiscope scene/render adapter
 ```
 
@@ -136,10 +137,17 @@ Asciiscope concepts.
 `IVisualSurface` is still deferred. The current priority is learning what the
 JUCE editor needs from snapshot-fed drawing before shaping a shared surface API.
 
-OpenGL is also deferred. The plugin should remain usable with the default JUCE
-software renderer, then optionally attach a dedicated OpenGL renderer later for
-shader trails, dense particles, phosphor feedback, and future Syphon/Spout-style
-experiments. The console identity should stay glyph-first either way.
+The base renderer should stay CPU-first and sample-aware. That is the cleanest
+path for tight audio/visual cohesion: waveform traces, interpolation, trail
+memory, and glyph placement can be generated from the same signal timeline that
+feeds the sound, with temporal density limited by the source data and visual
+budget rather than by a GPU frame clock.
+
+GPU work is still useful later, but as an effects/output layer after the CPU
+visual state exists: glow, bloom, phosphor diffusion, feedback, capture surfaces,
+or Syphon/Spout-style output experiments. The plugin should remain usable with
+the default JUCE software renderer, and the console identity should stay
+glyph-first either way.
 
 ## future
 
@@ -151,10 +159,10 @@ AsciiscopeVisualFrame
 // glyph cells, trace glyphs, and readouts generated before drawing
 
 JuceVisualFrameRenderer
-// current default draw path using juce::Graphics and monospaced glyphs
+// current default CPU draw path using juce::Graphics and monospaced glyphs
 
-OpenGLVisualFrameRenderer
-// optional later backend for texture glyphs, shader trails, and dense motion
+GpuVisualEffectsLayer
+// optional later layer for glow, bloom, feedback, and capture/output experiments
 
 DemoVisualInput
 // non-audio first visual feed for proving editor rendering
