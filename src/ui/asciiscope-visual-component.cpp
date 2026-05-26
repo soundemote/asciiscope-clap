@@ -96,10 +96,11 @@ float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize
     return history[index];
 }
 
-void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level,
+void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level, float peakHold,
                juce::Colour colour, const char *label)
 {
     const auto value = std::clamp(level, 0.0f, 1.0f);
+    const auto held = std::clamp(peakHold, 0.0f, 1.0f);
     g.setColour(juce::Colour(0xff07101c).withAlpha(0.82f));
     g.fillRect(bounds);
     g.setColour(juce::Colour(0xff18304d).withAlpha(0.78f));
@@ -109,6 +110,10 @@ void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level,
     fill.setWidth(fill.getWidth() * value);
     g.setColour(colour.withAlpha(0.82f));
     g.fillRect(fill);
+
+    const auto tickX = juce::jmap(held, 0.0f, 1.0f, bounds.getX() + 1.0f, bounds.getRight() - 2.0f);
+    g.setColour(juce::Colour(0xfff7fbff).withAlpha(0.82f));
+    g.fillRect(juce::Rectangle<float>(tickX, bounds.getY() + 1.0f, 2.0f, bounds.getHeight() - 2.0f));
 
     g.setColour(juce::Colour(0xffd7faff).withAlpha(0.74f));
     g.setFont(juce::FontOptions(9.0f, juce::Font::plain));
@@ -266,6 +271,8 @@ void AsciiscopeVisualComponent::tick()
     const auto transientAlpha = transientTarget > displayTransient ? 0.36f : 0.08f;
     displayLeftLevel += (leftTarget - displayLeftLevel) * leftAlpha;
     displayRightLevel += (rightTarget - displayRightLevel) * rightAlpha;
+    displayLeftPeakHold = std::max(displayLeftLevel, displayLeftPeakHold - 0.010f);
+    displayRightPeakHold = std::max(displayRightLevel, displayRightPeakHold - 0.010f);
     displayRms += (rmsTarget - displayRms) * 0.18f;
     displayCorrelation += (correlationTarget - displayCorrelation) * 0.16f;
     displayTransient += (transientTarget - displayTransient) * transientAlpha;
@@ -604,9 +611,11 @@ void AsciiscopeVisualComponent::drawReadouts(juce::Graphics &g, juce::Rectangle<
                false);
 
     auto meterArea = scope.reduced(7.0f).withHeight(19.0f).withWidth(118.0f);
-    drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, phosphorFor(0.62f, palette), "L");
+    drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, displayLeftPeakHold,
+              phosphorFor(0.62f, palette), "L");
     meterArea.removeFromTop(3.0f);
-    drawMeter(g, meterArea.removeFromTop(8.0f), displayRightLevel, phosphorFor(0.48f, palette), "R");
+    drawMeter(g, meterArea.removeFromTop(8.0f), displayRightLevel, displayRightPeakHold,
+              phosphorFor(0.48f, palette), "R");
     drawCorrelationMeter(g, scope.reduced(7.0f).translated(0.0f, 23.0f).withHeight(9.0f).withWidth(118.0f),
                          displayCorrelation, palette);
 

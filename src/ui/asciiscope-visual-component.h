@@ -115,6 +115,8 @@ struct AsciiscopeVisualComponent : juce::Component
     float rightLevel{0.0f};
     float displayLeftLevel{0.0f};
     float displayRightLevel{0.0f};
+    float displayLeftPeakHold{0.0f};
+    float displayRightPeakHold{0.0f};
     float displayRms{0.0f};
     float displayCorrelation{0.0f};
     float displayTransient{0.0f};
