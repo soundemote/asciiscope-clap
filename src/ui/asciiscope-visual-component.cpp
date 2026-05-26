@@ -194,10 +194,9 @@ void addTraceGlyph(AsciiscopeVisualFrame &frameData, float x, float y, char glyp
 }
 
 void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequencyHz,
-                    int palette, float visualAspect)
+                    int palette, float visualAspect, int cols, int rows, bool interpolate)
 {
     frameData.circleDiagnostic = true;
-    frameData.traceGlyphs.reserve(3);
 
     const auto aspect = std::max(0.05f, visualAspect);
     auto radiusX = 0.42f;
@@ -208,6 +207,34 @@ void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequency
         radiusY /= aspect;
 
     const auto t = static_cast<float>(frame) * frequencyHz * 0.05235988f;
+    const auto phaseStep = frequencyHz * 0.05235988f;
+    auto steps = 1;
+    if (interpolate)
+    {
+        const auto previousT = t - phaseStep;
+        const auto previousX = 0.5f + std::cos(previousT) * radiusX;
+        const auto previousY = 0.5f + std::sin(previousT) * radiusY;
+        const auto currentX = 0.5f + std::cos(t) * radiusX;
+        const auto currentY = 0.5f + std::sin(t) * radiusY;
+        const auto cellDistance =
+            std::max(std::abs(currentX - previousX) * static_cast<float>(cols),
+                     std::abs(currentY - previousY) * static_cast<float>(rows));
+        steps = std::max(1, static_cast<int>(std::ceil(cellDistance * 1.35f)));
+    }
+
+    const auto previousT = interpolate ? t - phaseStep : t;
+    frameData.traceGlyphs.reserve(static_cast<std::size_t>(steps + 3));
+
+    for (int i = 0; i <= steps; ++i)
+    {
+        const auto amount = static_cast<float>(i) / static_cast<float>(steps);
+        const auto phase = previousT + phaseStep * amount;
+        const auto intensity = 0.58f + amount * 0.34f;
+        addTraceGlyph(frameData, 0.5f + std::cos(phase) * radiusX,
+                      0.5f + std::sin(phase) * radiusY, i == steps ? '@' : '+',
+                      intensity, palette);
+    }
+
     for (int i = 0; i < 3; ++i)
     {
         const auto phase = t - static_cast<float>(i) * 0.055f;
@@ -306,12 +333,13 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
 }
 
 void AsciiscopeVisualComponent::setVisualOptions(int mode, int selectedPalette, float gain,
-                                                 float circleFrequency)
+                                                 float circleFrequency, bool interpolation)
 {
     scopeMode = std::clamp(mode, 0, 2);
     palette = std::clamp(selectedPalette, 0, 2);
     traceGain = std::clamp(0.25f + gain * 2.75f, 0.25f, 3.0f);
     circleFrequencyHz = std::clamp(0.05f + circleFrequency * 3.95f, 0.05f, 4.0f);
+    traceInterpolation = interpolation;
 }
 
 void AsciiscopeVisualComponent::setCircleDiagnostic(bool active)
@@ -334,7 +362,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                         paletteName(palette) + " // gain " + juce::String(traceGain, 2) +
                         (circleDiagnostic
                              ? juce::String(" // circle ") + juce::String(circleFrequencyHz, 2) +
-                                   "hz"
+                                   "hz // interp " + (traceInterpolation ? "on" : "off")
                              : juce::String()) +
                         " // L " + juce::String(displayLeftLevel, 2) + " R " +
                         juce::String(displayRightLevel, 2) + " // juce glyph";
@@ -356,7 +384,8 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
 
     if (circleDiagnostic)
     {
-        addCircleTrace(frameData, frame, circleFrequencyHz, palette, visualAspect);
+        addCircleTrace(frameData, frame, circleFrequencyHz, palette, visualAspect, cols, rows,
+                       traceInterpolation);
         return frameData;
     }
 

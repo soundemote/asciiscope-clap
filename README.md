@@ -60,6 +60,8 @@ done  : JUCE Graphics renderer for the visual frame
 done  : distinct Wave, Mirror, and Spectral frame-building paths
 done  : phosphor-style glyph memory for smoother JUCE frame trails
 done  : moving sin/cos circle diagnostic with persistent ASCII trail
+done  : point-to-point interpolation for contiguous circle trails
+done  : Trace Interpolation visual parameter for comparing raw and smoothed trails
 done  : bright live trace glyph overlay for Wave, Mirror, and Spectral modes
 done  : short phosphor memory for live trace glyph overlays
 done  : stereo phase spark layer from actual audio snapshot samples

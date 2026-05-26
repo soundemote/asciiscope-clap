@@ -155,7 +155,14 @@ struct Patch : pats::PatchBase<Patch, Param>
                                   .withDefault(0.25f)
                                   .withName("Circle Frequency")
                                   .withID(id(5))
-                                  .withGroupName("Visual"))
+                                  .withGroupName("Visual")),
+              traceInterpolation(intMd()
+                                     .withRange(0, 1)
+                                     .withDefault(1)
+                                     .withName("Trace Interpolation")
+                                     .withID(id(6))
+                                     .withGroupName("Visual")
+                                     .withUnorderedMapFormatting({{0, "Off"}, {1, "On"}}))
 
         {
         }
@@ -163,12 +170,12 @@ struct Patch : pats::PatchBase<Patch, Param>
         std::string name() const { return "Asciiscope"; }
         uint32_t id(int f) const { return idBase + f; }
 
-        Param pitch, harmlev, scopeMode, palette, traceGain, circleFrequency;
+        Param pitch, harmlev, scopeMode, palette, traceGain, circleFrequency, traceInterpolation;
 
         std::vector<Param *> params()
         {
             std::vector<Param *> res{&pitch, &harmlev, &scopeMode, &palette, &traceGain,
-                                     &circleFrequency};
+                                     &circleFrequency, &traceInterpolation};
             return res;
         }
     };
