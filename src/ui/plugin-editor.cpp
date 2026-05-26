@@ -185,7 +185,7 @@ void PluginEditor::idle()
                                     static_cast<int>(patchCopy.sqParams.palette.value),
                                     patchCopy.sqParams.traceGain.value,
                                     patchCopy.sqParams.circleFrequency.value,
-                                    patchCopy.sqParams.traceInterpolation.value > 0.5f);
+                                    static_cast<int>(patchCopy.sqParams.traceInterpolation.value));
         if (engine.visualSnapshots.pullLatest(latestVisualSnapshot, latestVisualFrameSeen))
             mainPanel->setVisualSnapshot(latestVisualSnapshot);
         mainPanel->tickVisual();

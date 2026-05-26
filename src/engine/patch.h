@@ -64,7 +64,7 @@ struct Param : pats::ParamBase, sst::cpputils::active_set_overlay<Param>::partic
 
 struct Patch : pats::PatchBase<Patch, Param>
 {
-    static constexpr uint32_t patchVersion{11};
+    static constexpr uint32_t patchVersion{12};
     static constexpr const char *id{"org.soundemote.asciiscope.clap"};
 
     static constexpr uint32_t floatFlags{CLAP_PARAM_IS_AUTOMATABLE};
@@ -157,12 +157,13 @@ struct Patch : pats::PatchBase<Patch, Param>
                                   .withID(id(5))
                                   .withGroupName("Visual")),
               traceInterpolation(intMd()
-                                     .withRange(0, 1)
-                                     .withDefault(1)
+                                     .withRange(0, 2)
+                                     .withDefault(2)
                                      .withName("Trace Interpolation")
                                      .withID(id(6))
                                      .withGroupName("Visual")
-                                     .withUnorderedMapFormatting({{0, "Off"}, {1, "On"}}))
+                                     .withUnorderedMapFormatting(
+                                         {{0, "Off"}, {1, "Linear"}, {2, "Catmull"}}))
 
         {
         }

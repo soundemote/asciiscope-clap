@@ -50,6 +50,19 @@ const char *paletteName(int palette)
     }
 }
 
+const char *traceInterpolationName(int mode)
+{
+    switch (mode)
+    {
+    case 1:
+        return "linear";
+    case 2:
+        return "catmull";
+    default:
+        return "off";
+    }
+}
+
 juce::Colour phosphorFor(float energy, int palette)
 {
     const auto e = std::clamp(energy, 0.0f, 1.0f);
@@ -193,8 +206,46 @@ void addTraceGlyph(AsciiscopeVisualFrame &frameData, float x, float y, char glyp
     });
 }
 
+struct TracePoint
+{
+    float x{0.5f};
+    float y{0.5f};
+};
+
+TracePoint circlePoint(float phase, float radiusX, float radiusY)
+{
+    return {
+        0.5f + std::cos(phase) * radiusX,
+        0.5f + std::sin(phase) * radiusY,
+    };
+}
+
+TracePoint lerpPoint(TracePoint a, TracePoint b, float amount)
+{
+    return {
+        a.x + (b.x - a.x) * amount,
+        a.y + (b.y - a.y) * amount,
+    };
+}
+
+TracePoint catmullRomPoint(TracePoint p0, TracePoint p1, TracePoint p2, TracePoint p3,
+                           float amount)
+{
+    const auto t2 = amount * amount;
+    const auto t3 = t2 * amount;
+    return {
+        0.5f * ((2.0f * p1.x) + (-p0.x + p2.x) * amount +
+                (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
+                (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3),
+        0.5f * ((2.0f * p1.y) + (-p0.y + p2.y) * amount +
+                (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
+                (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3),
+    };
+}
+
 void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequencyHz,
-                    int palette, float visualAspect, int cols, int rows, bool interpolate)
+                    int palette, float visualAspect, int cols, int rows,
+                    int interpolationMode)
 {
     frameData.circleDiagnostic = true;
 
@@ -208,31 +259,32 @@ void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequency
 
     const auto t = static_cast<float>(frame) * frequencyHz * 0.05235988f;
     const auto phaseStep = frequencyHz * 0.05235988f;
+    const auto p0 = circlePoint(t - phaseStep * 2.0f, radiusX, radiusY);
+    const auto p1 = circlePoint(t - phaseStep, radiusX, radiusY);
+    const auto p2 = circlePoint(t, radiusX, radiusY);
+    const auto p3 = circlePoint(t + phaseStep, radiusX, radiusY);
     auto steps = 1;
-    if (interpolate)
+    if (interpolationMode > 0)
     {
-        const auto previousT = t - phaseStep;
-        const auto previousX = 0.5f + std::cos(previousT) * radiusX;
-        const auto previousY = 0.5f + std::sin(previousT) * radiusY;
-        const auto currentX = 0.5f + std::cos(t) * radiusX;
-        const auto currentY = 0.5f + std::sin(t) * radiusY;
         const auto cellDistance =
-            std::max(std::abs(currentX - previousX) * static_cast<float>(cols),
-                     std::abs(currentY - previousY) * static_cast<float>(rows));
+            std::max(std::abs(p2.x - p1.x) * static_cast<float>(cols),
+                     std::abs(p2.y - p1.y) * static_cast<float>(rows));
         steps = std::max(1, static_cast<int>(std::ceil(cellDistance * 1.35f)));
     }
 
-    const auto previousT = interpolate ? t - phaseStep : t;
     frameData.traceGlyphs.reserve(static_cast<std::size_t>(steps + 3));
 
     for (int i = 0; i <= steps; ++i)
     {
         const auto amount = static_cast<float>(i) / static_cast<float>(steps);
-        const auto phase = previousT + phaseStep * amount;
+        auto point = p2;
+        if (interpolationMode == 1)
+            point = lerpPoint(p1, p2, amount);
+        else if (interpolationMode >= 2)
+            point = catmullRomPoint(p0, p1, p2, p3, amount);
+
         const auto intensity = 0.58f + amount * 0.34f;
-        addTraceGlyph(frameData, 0.5f + std::cos(phase) * radiusX,
-                      0.5f + std::sin(phase) * radiusY, i == steps ? '@' : '+',
-                      intensity, palette);
+        addTraceGlyph(frameData, point.x, point.y, i == steps ? '@' : '+', intensity, palette);
     }
 
     for (int i = 0; i < 3; ++i)
@@ -333,13 +385,13 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
 }
 
 void AsciiscopeVisualComponent::setVisualOptions(int mode, int selectedPalette, float gain,
-                                                 float circleFrequency, bool interpolation)
+                                                 float circleFrequency, int interpolationMode)
 {
     scopeMode = std::clamp(mode, 0, 2);
     palette = std::clamp(selectedPalette, 0, 2);
     traceGain = std::clamp(0.25f + gain * 2.75f, 0.25f, 3.0f);
     circleFrequencyHz = std::clamp(0.05f + circleFrequency * 3.95f, 0.05f, 4.0f);
-    traceInterpolation = interpolation;
+    traceInterpolationMode = std::clamp(interpolationMode, 0, 2);
 }
 
 void AsciiscopeVisualComponent::setCircleDiagnostic(bool active)
@@ -362,7 +414,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                         paletteName(palette) + " // gain " + juce::String(traceGain, 2) +
                         (circleDiagnostic
                              ? juce::String(" // circle ") + juce::String(circleFrequencyHz, 2) +
-                                   "hz // interp " + (traceInterpolation ? "on" : "off")
+                                   "hz // interp " + traceInterpolationName(traceInterpolationMode)
                              : juce::String()) +
                         " // L " + juce::String(displayLeftLevel, 2) + " R " +
                         juce::String(displayRightLevel, 2) + " // juce glyph";
@@ -385,7 +437,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
     if (circleDiagnostic)
     {
         addCircleTrace(frameData, frame, circleFrequencyHz, palette, visualAspect, cols, rows,
-                       traceInterpolation);
+                       traceInterpolationMode);
         return frameData;
     }
 
