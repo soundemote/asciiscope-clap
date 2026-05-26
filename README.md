@@ -57,6 +57,7 @@ done  : moving sin/cos circle diagnostic with persistent ASCII trail
 done  : bright live trace glyph overlay for Wave, Mirror, and Spectral modes
 done  : short phosphor memory for live trace glyph overlays
 done  : stereo phase spark layer from actual audio snapshot samples
+done  : silence-aware phase sparks for calmer host input testing
 done  : renderer readout confirms current JUCE glyph path
 kept  : existing engine/editor/classes/namespace shape
 next  : plugin-host visual testing and denser trace experiments

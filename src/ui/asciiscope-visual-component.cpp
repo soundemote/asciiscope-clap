@@ -178,6 +178,10 @@ void addStereoPhaseSparks(AsciiscopeVisualFrame &frameData, const AsciiscopeAudi
     if (snapshot.sampleCount == 0)
         return;
 
+    const auto snapshotEnergy = (snapshot.leftRms + snapshot.rightRms) * 0.5f;
+    if (snapshotEnergy < 0.0025f && transient < 0.01f)
+        return;
+
     const auto stride = std::max(1U, snapshot.sampleCount / 28U);
     const auto width = std::clamp(1.0f - std::abs(correlation), 0.0f, 1.0f);
     for (uint32_t i = 0; i < snapshot.sampleCount; i += stride)
@@ -187,8 +191,11 @@ void addStereoPhaseSparks(AsciiscopeVisualFrame &frameData, const AsciiscopeAudi
         const auto amp = std::clamp((std::abs(left) + std::abs(right)) * 0.55f +
                                         transient * 0.20f,
                                     0.0f, 1.0f);
+        if (amp < 0.018f)
+            continue;
+
         const auto glyph = amp > 0.72f ? '@' : (amp > 0.40f ? '*' : '+');
-        const auto intensity = std::clamp(0.28f + amp * 0.55f + width * 0.17f, 0.0f, 1.0f);
+        const auto intensity = std::clamp(0.12f + amp * 0.68f + width * 0.14f, 0.0f, 1.0f);
         addTraceGlyph(frameData, 0.5f + left * (0.20f + width * 0.17f),
                       0.5f - right * (0.20f + width * 0.17f), glyph, intensity, palette);
     }
