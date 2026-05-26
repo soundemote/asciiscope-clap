@@ -171,6 +171,28 @@ void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequency
                       intensity, palette);
     }
 }
+
+void addStereoPhaseSparks(AsciiscopeVisualFrame &frameData, const AsciiscopeAudioSnapshot &snapshot,
+                          int palette, float traceGain, float correlation, float transient)
+{
+    if (snapshot.sampleCount == 0)
+        return;
+
+    const auto stride = std::max(1U, snapshot.sampleCount / 28U);
+    const auto width = std::clamp(1.0f - std::abs(correlation), 0.0f, 1.0f);
+    for (uint32_t i = 0; i < snapshot.sampleCount; i += stride)
+    {
+        const auto left = std::clamp(snapshot.left[i] * traceGain, -1.0f, 1.0f);
+        const auto right = std::clamp(snapshot.right[i] * traceGain, -1.0f, 1.0f);
+        const auto amp = std::clamp((std::abs(left) + std::abs(right)) * 0.55f +
+                                        transient * 0.20f,
+                                    0.0f, 1.0f);
+        const auto glyph = amp > 0.72f ? '@' : (amp > 0.40f ? '*' : '+');
+        const auto intensity = std::clamp(0.28f + amp * 0.55f + width * 0.17f, 0.0f, 1.0f);
+        addTraceGlyph(frameData, 0.5f + left * (0.20f + width * 0.17f),
+                      0.5f - right * (0.20f + width * 0.17f), glyph, intensity, palette);
+    }
+}
 } // namespace
 
 AsciiscopeVisualComponent::AsciiscopeVisualComponent()
@@ -282,7 +304,10 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
     const auto width = hasSnapshot ? std::clamp(1.0f - std::abs(displayCorrelation), 0.0f, 1.0f)
                                    : 0.0f;
     const auto transient = hasSnapshot ? displayTransient : 0.0f;
-    frameData.traceGlyphs.reserve(static_cast<std::size_t>(cols * (scopeMode == 1 ? 2 : 1)));
+    frameData.traceGlyphs.reserve(static_cast<std::size_t>(cols * (scopeMode == 1 ? 2 : 1) + 36));
+
+    if (hasSnapshot)
+        addStereoPhaseSparks(frameData, snapshot, palette, traceGain, displayCorrelation, transient);
 
     for (int x = 0; x < cols; ++x)
     {
