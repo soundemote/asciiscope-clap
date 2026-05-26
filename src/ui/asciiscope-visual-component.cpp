@@ -355,6 +355,46 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
     return frameData;
 }
 
+void AsciiscopeVisualComponent::applyPhosphorMemory(AsciiscopeVisualFrame &frameData)
+{
+    if (frameData.circleDiagnostic)
+    {
+        phosphorFrame.reset(0, 0);
+        return;
+    }
+
+    if (phosphorFrame.cols != frameData.cols || phosphorFrame.rows != frameData.rows)
+        phosphorFrame.reset(frameData.cols, frameData.rows);
+
+    constexpr auto decay = 0.84f;
+    for (int y = 0; y < frameData.rows; ++y)
+    {
+        for (int x = 0; x < frameData.cols; ++x)
+        {
+            const auto index = static_cast<std::size_t>(y * frameData.cols + x);
+            auto &held = phosphorFrame.cells[index];
+            const auto &incoming = frameData.cells[index];
+
+            held.intensity *= decay;
+            if (held.intensity <= 0.035f)
+            {
+                held = {};
+            }
+
+            if (incoming.intensity > held.intensity)
+            {
+                held = incoming;
+            }
+            else if (held.intensity > 0.05f)
+            {
+                held.glyph = glyphFor(held.intensity);
+            }
+        }
+    }
+
+    frameData.cells = phosphorFrame.cells;
+}
+
 void AsciiscopeVisualComponent::drawVisualFrame(juce::Graphics &g, juce::Rectangle<float> scope,
                                                 const AsciiscopeVisualFrame &frameData) const
 {
@@ -454,7 +494,8 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     const auto rows = std::max(8, static_cast<int>(scope.getHeight() / 11.0f));
     const auto cols = std::max(24, static_cast<int>(scope.getWidth() / 8.0f));
     const auto visualAspect = scope.getHeight() / std::max(1.0f, scope.getWidth());
-    const auto visualFrame = buildVisualFrame(cols, rows, visualAspect);
+    auto visualFrame = buildVisualFrame(cols, rows, visualAspect);
+    applyPhosphorMemory(visualFrame);
     drawVisualFrame(g, scope, visualFrame);
     drawReadouts(g, scope, visualFrame);
 }

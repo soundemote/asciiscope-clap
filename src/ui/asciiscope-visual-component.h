@@ -89,6 +89,7 @@ struct AsciiscopeVisualComponent : juce::Component
     static constexpr uint32_t historySize{512};
 
     AsciiscopeVisualFrame buildVisualFrame(int cols, int rows, float visualAspect) const;
+    void applyPhosphorMemory(AsciiscopeVisualFrame &frameData);
     void drawVisualFrame(juce::Graphics &g, juce::Rectangle<float> scope,
                          const AsciiscopeVisualFrame &frameData) const;
     void drawReadouts(juce::Graphics &g, juce::Rectangle<float> scope,
@@ -98,6 +99,7 @@ struct AsciiscopeVisualComponent : juce::Component
     std::array<float, historySize> monoHistory{};
     std::array<float, historySize> leftHistory{};
     std::array<float, historySize> rightHistory{};
+    AsciiscopeVisualFrame phosphorFrame;
     uint32_t historyWrite{0};
     uint32_t historyCount{0};
     int latestSnapshotFrame{0};

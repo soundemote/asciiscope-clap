@@ -52,8 +52,9 @@ done  : sin/cos circle diagnostic button with frequency control
 done  : neutral visual frame built from glyph cells, trace glyphs, and readouts
 done  : JUCE Graphics renderer for the visual frame
 done  : distinct Wave, Mirror, and Spectral frame-building paths
+done  : phosphor-style glyph memory for smoother JUCE frame trails
 kept  : existing engine/editor/classes/namespace shape
-next  : denser trace memory and plugin-host visual testing
+next  : plugin-host visual testing and denser trace experiments
 later : optional JUCE OpenGL renderer behind the same visual frame
 later : Asciiscope scene/render adapter
 ```
