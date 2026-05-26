@@ -256,7 +256,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                                    "hz"
                              : juce::String()) +
                         " // L " + juce::String(displayLeftLevel, 2) + " R " +
-                        juce::String(displayRightLevel, 2);
+                        juce::String(displayRightLevel, 2) + " // juce glyph";
 
     if (hasSnapshot)
     {
