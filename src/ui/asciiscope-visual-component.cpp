@@ -243,6 +243,42 @@ TracePoint catmullRomPoint(TracePoint p0, TracePoint p1, TracePoint p2, TracePoi
     };
 }
 
+void addInterpolatedTrace(AsciiscopeVisualFrame &frameData, const std::vector<TracePoint> &points,
+                          char glyph, float intensity, int palette, int cols, int rows,
+                          int interpolationMode)
+{
+    if (points.empty())
+        return;
+
+    if (points.size() == 1 || interpolationMode <= 0)
+    {
+        for (const auto &point : points)
+            addTraceGlyph(frameData, point.x, point.y, glyph, intensity, palette);
+        return;
+    }
+
+    for (std::size_t i = 1; i < points.size(); ++i)
+    {
+        const auto p0 = points[i > 1 ? i - 2 : i - 1];
+        const auto p1 = points[i - 1];
+        const auto p2 = points[i];
+        const auto p3 = points[std::min(i + 1, points.size() - 1)];
+        const auto cellDistance =
+            std::max(std::abs(p2.x - p1.x) * static_cast<float>(cols),
+                     std::abs(p2.y - p1.y) * static_cast<float>(rows));
+        const auto steps = std::max(1, static_cast<int>(std::ceil(cellDistance * 1.20f)));
+
+        for (int step = i == 1 ? 0 : 1; step <= steps; ++step)
+        {
+            const auto amount = static_cast<float>(step) / static_cast<float>(steps);
+            const auto point = interpolationMode == 1
+                                   ? lerpPoint(p1, p2, amount)
+                                   : catmullRomPoint(p0, p1, p2, p3, amount);
+            addTraceGlyph(frameData, point.x, point.y, glyph, intensity, palette);
+        }
+    }
+}
+
 void addCircleTrace(AsciiscopeVisualFrame &frameData, int frame, float frequencyHz,
                     int palette, float visualAspect, int cols, int rows,
                     int interpolationMode)
@@ -411,10 +447,12 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
 
     frameData.readout = juce::String("mode ") + juce::String(scopeMode) + " " +
                         modeName(scopeMode) + " // palette " + juce::String(palette) + " " +
-                        paletteName(palette) + " // gain " + juce::String(traceGain, 2) +
+                        paletteName(palette) + " // interp " +
+                        traceInterpolationName(traceInterpolationMode) + " // gain " +
+                        juce::String(traceGain, 2) +
                         (circleDiagnostic
                              ? juce::String(" // circle ") + juce::String(circleFrequencyHz, 2) +
-                                   "hz // interp " + traceInterpolationName(traceInterpolationMode)
+                                   "hz"
                              : juce::String()) +
                         " // L " + juce::String(displayLeftLevel, 2) + " R " +
                         juce::String(displayRightLevel, 2) + " // juce glyph";
@@ -451,6 +489,15 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
     if (hasSnapshot)
         addStereoPhaseSparks(frameData, snapshot, palette, traceGain, displayCorrelation, transient);
 
+    std::vector<TracePoint> wavePoints;
+    std::vector<TracePoint> mirrorTopPoints;
+    std::vector<TracePoint> mirrorBottomPoints;
+    std::vector<TracePoint> spectralPoints;
+    wavePoints.reserve(static_cast<std::size_t>(cols));
+    mirrorTopPoints.reserve(static_cast<std::size_t>(cols));
+    mirrorBottomPoints.reserve(static_cast<std::size_t>(cols));
+    spectralPoints.reserve(static_cast<std::size_t>(cols));
+
     for (int x = 0; x < cols; ++x)
     {
         const auto phase =
@@ -484,8 +531,7 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                                             transient * 0.22f,
                                         0.0f, 1.0f);
             const auto xPos = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
-            addTraceGlyph(frameData, xPos, 1.0f - bin, bin > 0.72f ? '@' : '*',
-                          0.70f + bin * 0.26f, palette);
+            spectralPoints.push_back({xPos, 1.0f - bin});
 
             for (int y = 0; y < rows; ++y)
             {
@@ -514,12 +560,12 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         const auto xPos = static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
         if (scopeMode == 1)
         {
-            addTraceGlyph(frameData, xPos, mirrorA, '+', 0.78f + energy * 0.18f, palette);
-            addTraceGlyph(frameData, xPos, mirrorB, '+', 0.78f + energy * 0.18f, palette);
+            mirrorTopPoints.push_back({xPos, mirrorA});
+            mirrorBottomPoints.push_back({xPos, mirrorB});
         }
         else
         {
-            addTraceGlyph(frameData, xPos, centre, '@', 0.82f + energy * 0.14f, palette);
+            wavePoints.push_back({xPos, centre});
         }
 
         for (int y = 0; y < rows; ++y)
@@ -539,6 +585,24 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                            0.0f, 1.0f);
             writeCell(frameData, x, y, intensity, palette);
         }
+    }
+
+    if (scopeMode == 2)
+    {
+        addInterpolatedTrace(frameData, spectralPoints, '*', 0.82f + energy * 0.14f, palette,
+                             cols, rows, traceInterpolationMode);
+    }
+    else if (scopeMode == 1)
+    {
+        addInterpolatedTrace(frameData, mirrorTopPoints, '+', 0.78f + energy * 0.18f, palette,
+                             cols, rows, traceInterpolationMode);
+        addInterpolatedTrace(frameData, mirrorBottomPoints, '+', 0.78f + energy * 0.18f, palette,
+                             cols, rows, traceInterpolationMode);
+    }
+    else
+    {
+        addInterpolatedTrace(frameData, wavePoints, '@', 0.82f + energy * 0.14f, palette,
+                             cols, rows, traceInterpolationMode);
     }
 
     return frameData;
@@ -569,7 +633,7 @@ void AsciiscopeVisualComponent::applyPhosphorMemory(AsciiscopeVisualFrame &frame
     phosphorTraceGlyphs.insert(phosphorTraceGlyphs.end(),
                                frameData.traceGlyphs.begin(), frameData.traceGlyphs.end());
 
-    const auto maxTraceGlyphs = frameData.circleDiagnostic ? 220U : 520U;
+    const auto maxTraceGlyphs = frameData.circleDiagnostic ? 220U : 900U;
     if (phosphorTraceGlyphs.size() > maxTraceGlyphs)
     {
         phosphorTraceGlyphs.erase(phosphorTraceGlyphs.begin(),
