@@ -32,7 +32,7 @@ struct MainPanel : sst::jucegui::components::NamedPanel
     void setVisualLevels(float left, float right);
     void setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot);
     void setVisualOptions(int mode, int palette, float gain, float circleFrequency,
-                          int interpolationMode);
+                          int interpolationMode, bool syncTrace);
 
     std::unique_ptr<AsciiscopeVisualComponent> visual;
     juce::TextButton circleButton{"Circle"};

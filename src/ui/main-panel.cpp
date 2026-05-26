@@ -89,10 +89,10 @@ void MainPanel::setVisualSnapshot(const AsciiscopeAudioSnapshot &snapshot)
 }
 
 void MainPanel::setVisualOptions(int mode, int palette, float gain, float circleFrequency,
-                                 int interpolationMode)
+                                 int interpolationMode, bool syncTrace)
 {
     if (visual)
-        visual->setVisualOptions(mode, palette, gain, circleFrequency, interpolationMode);
+        visual->setVisualOptions(mode, palette, gain, circleFrequency, interpolationMode, syncTrace);
 }
 
 } // namespace baconpaul::sidequest_ns::ui

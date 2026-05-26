@@ -65,6 +65,7 @@ done  : moving sin/cos circle diagnostic with persistent ASCII trail
 done  : point-to-point interpolation for contiguous circle trails
 done  : Trace Interpolation modes for Off, Linear, and Catmull trail smoothing
 done  : Trace Interpolation also smooths rolling audio history sampling
+done  : Trace Sync parameter for rising-zero-crossing waveform stabilization
 done  : trace interpolation applied to Wave, Mirror, and Spectral overlays
 done  : bright live trace glyph overlay for Wave, Mirror, and Spectral modes
 done  : short phosphor memory for live trace glyph overlays

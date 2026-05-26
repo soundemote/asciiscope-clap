@@ -84,7 +84,7 @@ struct AsciiscopeVisualComponent : juce::Component
     void setLevels(float left, float right);
     void setSnapshot(const AsciiscopeAudioSnapshot &snapshot);
     void setVisualOptions(int mode, int palette, float gain, float circleFrequency,
-                          int interpolationMode);
+                          int interpolationMode, bool syncTrace);
     void setCircleDiagnostic(bool active);
 
     static constexpr uint32_t historySize{512};
@@ -111,6 +111,7 @@ struct AsciiscopeVisualComponent : juce::Component
     float traceGain{1.0f};
     float circleFrequencyHz{1.0f};
     int traceInterpolationMode{1};
+    bool traceSync{true};
     bool circleDiagnostic{false};
     bool hasSnapshot{false};
     float leftLevel{0.0f};

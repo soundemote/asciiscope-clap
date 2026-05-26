@@ -141,6 +141,62 @@ float readHistory(const std::array<float, AsciiscopeVisualComponent::historySize
                    (-y0 + 3.0f * y1 - 3.0f * y2 + y3) * t3);
 }
 
+float readHistoryWindow(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
+                        uint32_t write, uint32_t count, uint32_t startOffset,
+                        uint32_t windowCount, float position, int interpolationMode)
+{
+    if (count == 0 || windowCount == 0)
+        return 0.0f;
+
+    if (windowCount == count && startOffset == 0)
+        return readHistory(history, write, count, position, interpolationMode);
+
+    const auto clampedWindowCount = std::max(1U, std::min(windowCount, count - startOffset));
+    if (clampedWindowCount == 1)
+        return readHistorySample(history, write, count, static_cast<int>(startOffset));
+
+    const auto clampedPosition = std::clamp(position, 0.0f, 1.0f);
+    const auto samplePosition = static_cast<float>(startOffset) +
+                                clampedPosition * static_cast<float>(clampedWindowCount - 1U);
+    if (interpolationMode <= 0)
+        return readHistorySample(history, write, count,
+                                 static_cast<int>(std::round(samplePosition)));
+
+    const auto i1 = static_cast<int>(std::floor(samplePosition));
+    const auto amount = samplePosition - static_cast<float>(i1);
+    const auto y1 = readHistorySample(history, write, count, i1);
+    const auto y2 = readHistorySample(history, write, count, i1 + 1);
+
+    if (interpolationMode == 1)
+        return y1 + (y2 - y1) * amount;
+
+    const auto y0 = readHistorySample(history, write, count, i1 - 1);
+    const auto y3 = readHistorySample(history, write, count, i1 + 2);
+    const auto t2 = amount * amount;
+    const auto t3 = t2 * amount;
+    return 0.5f * ((2.0f * y1) + (-y0 + y2) * amount +
+                   (2.0f * y0 - 5.0f * y1 + 4.0f * y2 - y3) * t2 +
+                   (-y0 + 3.0f * y1 - 3.0f * y2 + y3) * t3);
+}
+
+uint32_t findStableTraceStart(const std::array<float, AsciiscopeVisualComponent::historySize> &history,
+                              uint32_t write, uint32_t count, uint32_t windowCount)
+{
+    if (count < 8 || windowCount >= count)
+        return 0;
+
+    const auto latestAllowedStart = count - windowCount;
+    auto bestStart = latestAllowedStart;
+    for (uint32_t i = 1; i <= latestAllowedStart; ++i)
+    {
+        const auto prev = readHistorySample(history, write, count, static_cast<int>(i - 1U));
+        const auto current = readHistorySample(history, write, count, static_cast<int>(i));
+        if (prev <= 0.0f && current > 0.0f && std::abs(current - prev) > 0.0015f)
+            bestStart = i;
+    }
+    return bestStart;
+}
+
 void drawMeter(juce::Graphics &g, juce::Rectangle<float> bounds, float level, float peakHold,
                juce::Colour colour, const char *label)
 {
@@ -453,13 +509,15 @@ void AsciiscopeVisualComponent::setSnapshot(const AsciiscopeAudioSnapshot &s)
 }
 
 void AsciiscopeVisualComponent::setVisualOptions(int mode, int selectedPalette, float gain,
-                                                 float circleFrequency, int interpolationMode)
+                                                 float circleFrequency, int interpolationMode,
+                                                 bool syncTrace)
 {
     scopeMode = std::clamp(mode, 0, 2);
     palette = std::clamp(selectedPalette, 0, 2);
     traceGain = std::clamp(0.25f + gain * 2.75f, 0.25f, 3.0f);
     circleFrequencyHz = std::clamp(0.05f + circleFrequency * 3.95f, 0.05f, 4.0f);
     traceInterpolationMode = std::clamp(interpolationMode, 0, 2);
+    traceSync = syncTrace;
 }
 
 void AsciiscopeVisualComponent::setCircleDiagnostic(bool active)
@@ -482,6 +540,9 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
                         paletteName(palette) + " // interp " +
                         traceInterpolationName(traceInterpolationMode) + " // gain " +
                         juce::String(traceGain, 2) +
+                        (hasSnapshot && scopeMode != 2 && !circleDiagnostic
+                             ? juce::String(" // sync ") + (traceSync ? "on" : "off")
+                             : juce::String()) +
                         (circleDiagnostic
                              ? juce::String(" // circle ") + juce::String(circleFrequencyHz, 2) +
                                    "hz"
@@ -524,6 +585,14 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
     if (hasSnapshot)
         addStereoPhaseSparks(frameData, snapshot, palette, traceGain, displayCorrelation, transient);
 
+    const auto visibleSampleCount =
+        hasSnapshot ? std::min(historyCount, std::max(128U, static_cast<uint32_t>(cols * 4))) : 0U;
+    const auto traceWindowCount = hasSnapshot && visibleSampleCount > 0 ? visibleSampleCount : historyCount;
+    const auto traceStartOffset =
+        hasSnapshot && traceSync && scopeMode != 2
+            ? findStableTraceStart(monoHistory, historyWrite, historyCount, traceWindowCount)
+            : (historyCount > traceWindowCount ? historyCount - traceWindowCount : 0U);
+
     std::vector<TracePoint> wavePoints;
     std::vector<TracePoint> mirrorTopPoints;
     std::vector<TracePoint> mirrorBottomPoints;
@@ -545,12 +614,14 @@ AsciiscopeVisualFrame AsciiscopeVisualComponent::buildVisualFrame(int cols, int 
         {
             const auto historyPosition =
                 static_cast<float>(x) / static_cast<float>(std::max(1, cols - 1));
-            const auto left = readHistory(leftHistory, historyWrite, historyCount,
-                                          historyPosition, traceInterpolationMode);
-            const auto right = readHistory(rightHistory, historyWrite, historyCount,
-                                           historyPosition, traceInterpolationMode);
-            mono = readHistory(monoHistory, historyWrite, historyCount, historyPosition,
-                               traceInterpolationMode);
+            const auto left = readHistoryWindow(leftHistory, historyWrite, historyCount,
+                                                traceStartOffset, traceWindowCount,
+                                                historyPosition, traceInterpolationMode);
+            const auto right = readHistoryWindow(rightHistory, historyWrite, historyCount,
+                                                 traceStartOffset, traceWindowCount,
+                                                 historyPosition, traceInterpolationMode);
+            mono = readHistoryWindow(monoHistory, historyWrite, historyCount, traceStartOffset,
+                                     traceWindowCount, historyPosition, traceInterpolationMode);
             sample = std::clamp((left + right) * 0.27f * traceGain, -0.48f, 0.48f);
             stereoSpread = std::clamp((left - right) * (0.14f + width * 0.12f) * traceGain,
                                       -0.28f, 0.28f);
