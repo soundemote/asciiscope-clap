@@ -582,12 +582,26 @@ void AsciiscopeVisualComponent::drawVisualFrame(juce::Graphics &g, juce::Rectang
 void AsciiscopeVisualComponent::drawReadouts(juce::Graphics &g, juce::Rectangle<float> scope,
                                              const AsciiscopeVisualFrame &frameData) const
 {
+    const auto inner = scope.reduced(7.0f);
+    const auto topShelf = inner.withHeight(17.0f);
+    const auto bottomShelf = inner.withTop(inner.getBottom() - 17.0f);
+    const auto feedShelf = inner.withTrimmedLeft(std::max(120.0f, inner.getWidth() * 0.28f))
+                           .withHeight(17.0f)
+                           .translated(0.0f, 22.0f);
+
+    g.setColour(juce::Colour(0xff03040a).withAlpha(0.55f));
+    g.fillRoundedRectangle(topShelf, 3.0f);
+    g.fillRoundedRectangle(bottomShelf, 3.0f);
+    if (frameData.feed.isNotEmpty())
+        g.fillRoundedRectangle(feedShelf, 3.0f);
+
     g.setColour(juce::Colour(0xff5efcff).withAlpha(0.85f));
     g.setFont(juce::FontOptions(11.0f, juce::Font::plain));
-    g.drawText(frameData.title, scope.reduced(7.0f), juce::Justification::topLeft, false);
+    g.drawText(frameData.title, topShelf.reduced(4.0f, 0.0f), juce::Justification::centredLeft, false);
 
     g.setColour(phosphorFor(0.74f, palette).withAlpha(0.92f));
-    g.drawText(frameData.readout, scope.reduced(7.0f), juce::Justification::bottomRight, false);
+    g.drawText(frameData.readout, bottomShelf.reduced(4.0f, 0.0f), juce::Justification::centredRight,
+               false);
 
     auto meterArea = scope.reduced(7.0f).withHeight(19.0f).withWidth(118.0f);
     drawMeter(g, meterArea.removeFromTop(8.0f), displayLeftLevel, phosphorFor(0.62f, palette), "L");
@@ -600,7 +614,8 @@ void AsciiscopeVisualComponent::drawReadouts(juce::Graphics &g, juce::Rectangle<
     {
         g.setColour((frameData.feedIsStale ? juce::Colour(0xffff4a3d) : phosphorFor(0.50f, palette))
                         .withAlpha(0.72f));
-        g.drawText(frameData.feed, scope.reduced(7.0f, 22.0f), juce::Justification::topRight, false);
+        g.drawText(frameData.feed, feedShelf.reduced(4.0f, 0.0f), juce::Justification::centredRight,
+                   false);
     }
 }
 
