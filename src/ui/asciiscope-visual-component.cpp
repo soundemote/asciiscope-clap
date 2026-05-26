@@ -595,8 +595,14 @@ void AsciiscopeVisualComponent::paint(juce::Graphics &g)
     g.fillAll(juce::Colour(0xff03040a));
 
     auto scope = bounds.reduced(8.0f);
+    const auto snapshotAge = hasSnapshot ? std::max(0, frame - latestSnapshotFrame) : 0;
+    const auto isStale = hasSnapshot && snapshotAge > 8;
+    const auto borderEnergy = std::clamp(displayRms * 1.4f + displayTransient * 0.55f, 0.0f, 1.0f);
     g.setColour(juce::Colour(0xff13233a));
     g.drawRoundedRectangle(scope, 6.0f, 1.0f);
+    g.setColour((isStale ? juce::Colour(0xffff4a3d) : phosphorFor(0.48f + borderEnergy * 0.46f, palette))
+                    .withAlpha(0.18f + borderEnergy * 0.60f));
+    g.drawRoundedRectangle(scope.reduced(1.0f), 5.0f, 1.0f + borderEnergy * 2.0f);
 
     g.setColour(juce::Colour(0xff18304d).withAlpha(0.55f));
     for (int i = 1; i < 4; ++i)

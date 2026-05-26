@@ -44,6 +44,7 @@ done  : snapshot block/frame/age readouts for host testing
 done  : stereo correlation in the audio snapshot readout
 done  : width-reactive sparkle from stereo correlation
 done  : transient/crest flash from audio snapshot peaks
+done  : transient-reactive scope frame glow
 done  : smoothed visual metrics for steadier host readouts
 done  : live/stale snapshot feed indicator
 done  : stale snapshot visual decay for calmer transport-stop behavior
